@@ -1,0 +1,32 @@
+{
+  "name": "@noedgeai/doc2x-mcp",
+  "version": "0.1.0",
+  "description": "Doc2x MCP server (stdio, MCP SDK).",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "doc2x-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    ".env.example"
+  ],
+  "scripts": {
+    "build": "node ./node_modules/typescript/bin/tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "latest"
+  }
+}
