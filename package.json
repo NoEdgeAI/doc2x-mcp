@@ -12,9 +12,10 @@
     "doc2x-mcp": "dist/index.js"
   },
   "files": [
-    "dist/",
-    "README.md",
-    ".env.example"
+    "./dist",
+    "./README.md",
+    "./.env.example",
+    "./package.json"
   ],
   "scripts": {
     "build": "node ./node_modules/typescript/bin/tsc -p tsconfig.json",
