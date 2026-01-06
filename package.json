@@ -1,5 +1,5 @@
 {
-  "name": "@noedgeai/doc2x-mcp",
+  "name": "@noedgeai-org/doc2x-mcp",
   "version": "0.1.0",
   "description": "Doc2x MCP server (stdio, MCP SDK).",
   "license": "UNLICENSED",
@@ -31,5 +31,17 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NoEdgeAI/doc2x-mcp.git"
+  },
+  "keywords": [
+    "doc2x"
+  ],
+  "author": "hsn",
+  "bugs": {
+    "url": "https://github.com/NoEdgeAI/doc2x-mcp/issues"
+  },
+  "homepage": "https://github.com/NoEdgeAI/doc2x-mcp#readme"
 }

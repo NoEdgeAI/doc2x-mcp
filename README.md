@@ -24,7 +24,7 @@
 ```json
 {
   "command": "npx",
-  "args": ["-y", "@noedgeai/doc2x-mcp"],
+  "args": ["-y", "@noedgeai-org/doc2x-mcp"],
   "env": {
     "DOC2X_API_KEY": "sk-xxx",
     "DOC2X_BASE_URL": "https://v2.doc2x.noedgeai.com"
