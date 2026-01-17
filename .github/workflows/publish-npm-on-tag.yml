@@ -1,9 +1,6 @@
 name: Publish to npm on tag
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       tag:
@@ -12,7 +9,7 @@ on:
         type: string
 
 concurrency:
-  group: npm-publish-${{ github.ref }}
+  group: npm-publish-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -32,15 +29,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            TAG="${{ inputs.tag }}"
-            git fetch --tags --force
-            git checkout --detach "${TAG}"
-            SHA="$(git rev-list -n1 "${TAG}")"
-          else
-            TAG="${GITHUB_REF_NAME}"
-            SHA="${GITHUB_SHA}"
-          fi
+          TAG="${{ inputs.tag }}"
+          git fetch --tags --force
+          git checkout --detach "${TAG}"
+          SHA="$(git rev-list -n1 "${TAG}")"
 
           if [[ ! "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([\-+][0-9A-Za-z.-]+)?$ ]]; then
             echo "Invalid tag: ${TAG}"
