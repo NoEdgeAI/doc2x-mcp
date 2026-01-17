@@ -70,8 +70,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm pack --dry-run > pack.log
-          grep -qE '(^|[[:space:]])dist/index\.js$' pack.log
+          TARBALL="$(npm pack --silent)"
+          tar -tf "${TARBALL}" | grep -qx 'package/dist/index.js'
+          rm -f "${TARBALL}"
 
       - name: Publish to npm
         shell: bash
