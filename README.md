@@ -75,3 +75,36 @@ DOC2X_API_KEY=sk-xxx npm start
 ## 5) 协议
 
 MIT License，详见 `LICENSE`。
+
+## 6) 安装本仓库 Skill（可选）
+
+用于给 Codex CLI / Claude Code 增加一个“教大模型如何使用 doc2x-mcp tools 的 Skill”（便于按固定工作流调用 tools、导出与下载、以及排错）。
+
+不需要 clone 仓库的一键安装（推荐）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh
+```
+
+在本仓库源码目录安装：
+
+```bash
+npm run skill:install
+```
+
+默认安装到：
+
+脚本默认安装到：
+
+- Codex CLI：`~/.codex/skills/local/doc2x-mcp`（用 `CODEX_HOME` 覆盖）
+- Claude Code：`~/.claude/skills/local/doc2x-mcp`（用 `CLAUDE_HOME` / `CLAUDE_CODE_HOME` 覆盖）
+
+说明：
+
+- `--target auto`（默认）会同时安装到 Codex + Claude；如只想装其中一个，用 `--target codex|claude`。
+- Windows PowerShell 一键安装：`irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.ps1 | iex`
+
+覆盖安装目录示例：
+
+- mac/linux：`CODEX_HOME=/custom/.codex curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh -s -- --target codex`
+- Windows：`$env:CODEX_HOME="C:\\path\\.codex"; irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.ps1 | iex`

@@ -27,3 +27,22 @@ publish: check
 
 clean:
   rm -rf dist
+
+# Install repo skill into local skills dir (Codex + Claude by default)
+install-skill:
+  sh scripts/install-skill.sh
+
+# Overwrite existing installation
+install-skill-force:
+  sh scripts/install-skill.sh --force
+
+# Install to only one target
+install-skill-codex:
+  sh scripts/install-skill.sh --target codex
+
+install-skill-claude:
+  sh scripts/install-skill.sh --target claude
+
+# Windows-friendly (PowerShell)
+install-skill-ps:
+  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-skill.ps1

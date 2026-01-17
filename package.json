@@ -16,12 +16,17 @@
     "./LICENSE",
     "./README.md",
     "./README_EN.md",
+    "./scripts/install-skill.sh",
+    "./scripts/install-skill.ps1",
+    "./skills/doc2x-mcp/SKILL.md",
     "./package.json"
   ],
   "scripts": {
     "build": "node ./node_modules/typescript/bin/tsc -p tsconfig.json",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "skill:install": "sh scripts/install-skill.sh",
+    "skill:install:ps": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-skill.ps1",
     "start": "node dist/index.js",
     "prepublishOnly": "npm run build"
   },

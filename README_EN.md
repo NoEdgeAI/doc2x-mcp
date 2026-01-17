@@ -75,3 +75,36 @@ DOC2X_API_KEY=sk-xxx npm start
 ## 5) License
 
 MIT License. See `LICENSE`.
+
+## 6) Install Repo Skill (Optional)
+
+Installs a tool-use skill for Codex CLI / Claude Code (teaches the LLM how to use doc2x-mcp tools with a standard workflow: submit/status/wait/export/download).
+
+One-command install without cloning (recommended):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh
+```
+
+Install from this repo source directory:
+
+```bash
+npm run skill:install
+```
+
+Default destination:
+
+The script installs to:
+
+- Codex CLI: `~/.codex/skills/local/doc2x-mcp` (override via `CODEX_HOME`)
+- Claude Code: `~/.claude/skills/local/doc2x-mcp` (override via `CLAUDE_HOME` / `CLAUDE_CODE_HOME`)
+
+Notes:
+
+- `--target auto` (default) installs to both Codex + Claude; use `--target codex|claude` to install only one.
+- Windows PowerShell one-command install: `irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.ps1 | iex`
+
+Override install dir examples:
+
+- mac/linux: `CODEX_HOME=/custom/.codex curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh -s -- --target codex`
+- Windows: `$env:CODEX_HOME="C:\\path\\.codex"; irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.ps1 | iex`
