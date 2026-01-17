@@ -65,14 +65,16 @@ export function registerTools(server: McpServer) {
   server.registerTool(
     'doc2x_parse_pdf_status',
     {
-      description: 'Get status/result for an existing Doc2x PDF parse task by uid.',
+      description:
+        'Query parse task status by uid. Returns {status, progress, detail}. status is one of processing/failed/success; progress is an integer 0..100; detail is populated only when status=failed. Fetch parsed content via doc2x_convert_export_*.',
       inputSchema: {
         uid: z.string().min(1).describe('Doc2x parse task uid returned by doc2x_parse_pdf_submit.'),
       },
     },
-    async ({ uid }) => {
+    async (args: { uid: string }) => {
       try {
-        return asJsonResult(await parsePdfStatus(uid));
+        const st = await parsePdfStatus(args.uid);
+        return asJsonResult({ status: st.status, progress: st.progress, detail: st.detail });
       } catch (e) {
         return asErrorResult(e);
       }
