@@ -4,6 +4,17 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "#config": ["src/config.ts"],
+      "#errors": ["src/errors.ts"],
+      "#errorCodes": ["src/errorCodes.ts"],
+      "#utils": ["src/utils.ts"],
+      "#doc2x/*": ["src/doc2x/*"],
+      "#mcp/*": ["src/mcp/*"]
+    },
     "outDir": "dist",
     "rootDir": "src",
     "strict": true,
@@ -13,4 +24,3 @@
   },
   "include": ["src/**/*.ts"]
 }
-
