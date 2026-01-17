@@ -75,11 +75,3 @@ DOC2X_API_KEY=sk-xxx npm start
 ## 5) License
 
 MIT License. See `LICENSE`.
-
-## 6) Publish
-
-This repo publishes to npm via GitHub Actions on tag push:
-
-- tag must be `v<semver>`, and must match `v${package.json.version}`
-- workflow runs `npm run prepublishOnly` (build) and checks `npm pack --dry-run` contains `dist/index.js`
-- requires `NPM_TOKEN` in GitHub repository secrets

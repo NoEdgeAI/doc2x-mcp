@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
@@ -70,17 +71,15 @@ jobs:
         run: |
           set -euo pipefail
           npm pack --dry-run > pack.log
-          grep -qE 'package/dist/index\.js' pack.log
+          grep -qE '(^|[[:space:]])dist/index\.js$' pack.log
 
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           VERSION="$(node -p "require('./package.json').version")"
           if [[ "${VERSION}" == *"-"* ]]; then
-            npm publish --access public --tag next
+            npm publish --access public --tag next --provenance
           else
-            npm publish --access public
+            npm publish --access public --provenance
           fi

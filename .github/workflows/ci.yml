@@ -39,4 +39,4 @@ jobs:
         run: |
           set -euo pipefail
           npm pack --dry-run > pack.log
-          grep -qE 'package/dist/index\.js' pack.log
+          grep -qE '(^|[[:space:]])dist/index\.js$' pack.log

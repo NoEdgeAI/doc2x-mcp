@@ -75,11 +75,3 @@ DOC2X_API_KEY=sk-xxx npm start
 ## 5) 协议
 
 MIT License，详见 `LICENSE`。
-
-## 6) 发布
-
-本仓库通过 GitHub Actions 在 push tag 时发布到 npm：
-
-- tag 必须为 `v<semver>`，且 `v${package.json.version}` 必须与 tag 一致
-- workflow 会先跑 `npm run prepublishOnly`（即 build），并校验 `npm pack --dry-run` 产物包含 `dist/index.js`
-- 需要在 GitHub 仓库 secrets 配置 `NPM_TOKEN`
