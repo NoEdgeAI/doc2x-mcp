@@ -40,7 +40,7 @@ export function registerTools(server: McpServer) {
     'doc2x_parse_pdf_submit',
     {
       description:
-        'Create a Doc2x PDF parse task for a local file and return {uid}. After this, call doc2x_parse_pdf_wait_text (with uid) or doc2x_parse_pdf_status.',
+        'Create a Doc2x PDF parse task for a local file and return {uid}. Prefer calling doc2x_parse_pdf_status to monitor progress/result; only call doc2x_parse_pdf_wait_text if the user explicitly asks to wait/return merged text.',
       inputSchema: {
         pdf_path: z
           .string()
