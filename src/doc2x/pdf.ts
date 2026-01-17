@@ -117,9 +117,7 @@ export async function parsePdfStatus(uid: string) {
   const data = await doc2xRequestJson(HTTP_METHOD_GET, v2('/parse/status'), { query: { uid } });
   const status = String(data.status);
   const progressRaw = Number(data.progress ?? 0);
-  const progress = Number.isFinite(progressRaw)
-    ? _.clamp(Math.floor(progressRaw), 0, 100)
-    : 0;
+  const progress = Number.isFinite(progressRaw) ? _.clamp(Math.floor(progressRaw), 0, 100) : 0;
   const detail = status === DOC2X_TASK_STATUS_FAILED ? String(data.detail || '') : '';
   return {
     uid,
