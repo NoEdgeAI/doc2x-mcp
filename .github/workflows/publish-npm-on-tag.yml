@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (e.g. v1.2.3). Required for manual runs.'
+        required: true
+        type: string
 
 concurrency:
   group: npm-publish-${{ github.ref }}
@@ -27,7 +32,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          TAG="${GITHUB_REF_NAME}"
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+            git fetch --tags --force
+            git checkout --detach "${TAG}"
+            SHA="$(git rev-list -n1 "${TAG}")"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            SHA="${GITHUB_SHA}"
+          fi
+
           if [[ ! "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([\-+][0-9A-Za-z.-]+)?$ ]]; then
             echo "Invalid tag: ${TAG}"
             echo "Expected: v<semver>, e.g. v1.2.3 or v1.2.3-rc.1"
@@ -41,9 +55,14 @@ jobs:
           fi
 
           # Optional safety: require the tagged commit to be reachable from main.
-          git fetch origin main --depth=1
-          if ! git merge-base --is-ancestor "${GITHUB_SHA}" "origin/main"; then
-            echo "Refusing to publish: ${GITHUB_SHA} is not on origin/main"
+          if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
+            git fetch --unshallow origin main
+          else
+            git fetch origin main
+          fi
+
+          if ! git merge-base --is-ancestor "${SHA}" "origin/main"; then
+            echo "Refusing to publish: ${SHA} is not on origin/main"
             exit 1
           fi
 
