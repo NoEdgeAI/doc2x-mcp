@@ -1,8 +1,8 @@
 {
   "name": "@noedgeai-org/doc2x-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Doc2x MCP server (stdio, MCP SDK).",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "engines": {
     "node": ">=18"
   },
@@ -13,20 +13,27 @@
   },
   "files": [
     "./dist",
+    "./LICENSE",
     "./README.md",
+    "./README_EN.md",
     "./package.json"
   ],
   "scripts": {
     "build": "node ./node_modules/typescript/bin/tsc -p tsconfig.json",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "start": "node dist/index.js",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "latest",
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "@types/lodash": "^4.17.23",
+    "lodash": "^4.17.21",
     "zod": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",
+    "prettier": "^3.6.2",
     "typescript": "latest"
   },
   "publishConfig": {
@@ -36,10 +43,19 @@
     "type": "git",
     "url": "git+https://github.com/NoEdgeAI/doc2x-mcp.git"
   },
+  "imports": {
+    "#config": "./dist/config.js",
+    "#errors": "./dist/errors.js",
+    "#errorCodes": "./dist/errorCodes.js",
+    "#utils": "./dist/utils.js",
+    "#doc2x/*": "./dist/doc2x/*.js",
+    "#mcp/*": "./dist/mcp/*.js"
+  },
   "keywords": [
-    "doc2x"
+    "doc2x",
+    "mcp"
   ],
-  "author": "hsn",
+  "author": "NoEdgeAI",
   "bugs": {
     "url": "https://github.com/NoEdgeAI/doc2x-mcp/issues"
   },
