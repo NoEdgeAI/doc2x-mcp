@@ -86,6 +86,12 @@ MIT License，详见 `LICENSE`。
 curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh
 ```
 
+覆盖重装：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh -s -- --force
+```
+
 在本仓库源码目录安装：
 
 ```bash
@@ -96,8 +102,8 @@ npm run skill:install
 
 脚本默认安装到：
 
-- Codex CLI：`~/.codex/skills/local/doc2x-mcp`（用 `CODEX_HOME` 覆盖）
-- Claude Code：`~/.claude/skills/local/doc2x-mcp`（用 `CLAUDE_HOME` / `CLAUDE_CODE_HOME` 覆盖）
+- Codex CLI：`~/.codex/skills/public/doc2x-mcp`（用 `CODEX_HOME` 覆盖）
+- Claude Code：`~/.claude/skills/doc2x-mcp`（用 `CLAUDE_HOME` 覆盖）
 
 说明：
 

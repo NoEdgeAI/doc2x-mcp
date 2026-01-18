@@ -1,7 +1,7 @@
 Param(
   [ValidateSet("auto", "codex", "claude")]
   [string]$Target = "auto",
-  [string]$Category = "local",
+  [string]$Category = "public",
   [string]$Name = "doc2x-mcp",
   [string]$Dest = "",
   [switch]$Force,
@@ -26,7 +26,7 @@ $home = $HOME
 if (-not $home) { throw '$HOME is not set' }
 
 $codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $home ".codex" }
-$claudeHome = if ($env:CLAUDE_HOME) { $env:CLAUDE_HOME } elseif ($env:CLAUDE_CODE_HOME) { $env:CLAUDE_CODE_HOME } else { Join-Path $home ".claude" }
+$claudeHome = if ($env:CLAUDE_HOME) { $env:CLAUDE_HOME } else { Join-Path $home ".claude" }
 
 $codexRoot = Join-Path $codexHome "skills"
 $claudeRoot = Join-Path $claudeHome "skills"
@@ -81,7 +81,16 @@ try {
   }
 
   foreach ($root in $roots) {
-    $destDir = if ($Dest) { $Dest } else { Join-Path (Join-Path $root $Category) $Name }
+    $destDir = ""
+    if ($Dest) {
+      $destDir = $Dest
+    } elseif ($root -eq $codexRoot) {
+      $destDir = Join-Path (Join-Path $root $Category) $Name
+    } elseif ($root -eq $claudeRoot) {
+      $destDir = Join-Path $root $Name
+    } else {
+      $destDir = Join-Path (Join-Path $root $Category) $Name
+    }
     $skillMdDest = Join-Path $destDir "SKILL.md"
 
     if (Test-Path $destDir) {

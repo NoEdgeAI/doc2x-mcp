@@ -28,7 +28,7 @@ publish: check
 clean:
   rm -rf dist
 
-# Install repo skill into local skills dir (Codex + Claude by default)
+# Install repo skill into skills dir (Codex + Claude by default)
 install-skill:
   sh scripts/install-skill.sh
 

@@ -11,7 +11,7 @@ Usage:
 
 Options:
   --target    auto|codex|claude (default: auto; auto installs to both)
-  --category  category under skills root (default: local)
+  --category  Codex category under skills root (default: public; ignored for Claude)
   --name      skill directory name (default: doc2x-mcp)
   --dest      explicit destination directory (overrides target/category/name)
   --force     overwrite if destination exists
@@ -20,13 +20,12 @@ Options:
 Env:
   CODEX_HOME            override Codex home (default: ~/.codex)
   CLAUDE_HOME           override Claude home (default: ~/.claude)
-  CLAUDE_CODE_HOME      alternative Claude home env
   DOC2X_MCP_RAW_BASE    raw base URL (default: https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main)
 EOF
 }
 
 TARGET="auto"
-CATEGORY="local"
+CATEGORY="public"
 NAME="doc2x-mcp"
 FORCE="0"
 DRY_RUN="0"
@@ -82,7 +81,7 @@ if [ -z "$HOME_DIR" ]; then
 fi
 
 CODEX_HOME_DIR="${CODEX_HOME:-$HOME_DIR/.codex}"
-CLAUDE_HOME_DIR="${CLAUDE_HOME:-${CLAUDE_CODE_HOME:-$HOME_DIR/.claude}}"
+CLAUDE_HOME_DIR="${CLAUDE_HOME:-$HOME_DIR/.claude}"
 
 CODEX_SKILLS_ROOT="$CODEX_HOME_DIR/skills"
 CLAUDE_SKILLS_ROOT="$CLAUDE_HOME_DIR/skills"
@@ -162,7 +161,15 @@ prepare_skill_md() {
 
 install_to_root() {
   root="$1"
-  dest_dir="${DEST:-$root/$CATEGORY/$NAME}"
+  if [ -n "$DEST" ]; then
+    dest_dir="$DEST"
+  elif [ "$root" = "$CODEX_SKILLS_ROOT" ]; then
+    dest_dir="$root/$CATEGORY/$NAME"
+  elif [ "$root" = "$CLAUDE_SKILLS_ROOT" ]; then
+    dest_dir="$root/$NAME"
+  else
+    dest_dir="$root/$CATEGORY/$NAME"
+  fi
 
   if [ -e "$dest_dir" ]; then
     if [ "$FORCE" != "1" ]; then

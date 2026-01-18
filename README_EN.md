@@ -86,6 +86,12 @@ One-command install without cloning (recommended):
 curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh
 ```
 
+Overwrite reinstall:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh -s -- --force
+```
+
 Install from this repo source directory:
 
 ```bash
@@ -96,8 +102,8 @@ Default destination:
 
 The script installs to:
 
-- Codex CLI: `~/.codex/skills/local/doc2x-mcp` (override via `CODEX_HOME`)
-- Claude Code: `~/.claude/skills/local/doc2x-mcp` (override via `CLAUDE_HOME` / `CLAUDE_CODE_HOME`)
+- Codex CLI: `~/.codex/skills/public/doc2x-mcp` (override via `CODEX_HOME`)
+- Claude Code: `~/.claude/skills/doc2x-mcp` (override via `CLAUDE_HOME`)
 
 Notes:
 
