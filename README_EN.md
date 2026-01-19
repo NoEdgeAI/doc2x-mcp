@@ -86,11 +86,7 @@ One-command install without cloning (recommended):
 curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill.sh | sh
 ```
 
-Overwrite reinstall:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill.sh | sh -s -- --force
-```
+Re-run the same command to overwrite (default behavior overwrites an existing destination directory).
 
 Install from this repo source directory:
 

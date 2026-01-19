@@ -86,11 +86,7 @@ MIT License，详见 `LICENSE`。
 curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill.sh | sh
 ```
 
-覆盖重装：
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill.sh | sh -s -- --force
-```
+重复执行同一条命令即可覆盖安装（默认会覆盖已存在目录）。
 
 在本仓库源码目录安装：
 

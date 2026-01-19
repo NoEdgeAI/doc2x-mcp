@@ -128,8 +128,8 @@ try {
     $skillMdDest = Join-Path $destDir "SKILL.md"
 
     if (Test-Path $destDir) {
-      if (-not $Force) {
-        throw "Destination already exists: $destDir`nRe-run with -Force to overwrite."
+      if ($Dest -and (-not $Force)) {
+        throw "Destination already exists: $destDir`nRe-run with -Force to overwrite an explicit -Dest."
       }
       Remove-Item -Recurse -Force $destDir
     }
