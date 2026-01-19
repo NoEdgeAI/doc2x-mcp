@@ -1,6 +1,6 @@
 ---
 name: doc2x-mcp
-description: 面向大模型的 doc2x-mcp 工具调用规范：按用户目标选择 tools、遵守参数/安全约束、以及标准工作流（submit/status/wait/export/download）。
+description: Doc2x MCP 工具调用指南：解析/转换/抽取 PDF 与图片（PDF→Markdown/LaTeX(TeX)/DOCX，图片→Markdown），支持 OCR/版面解析/表格与文本抽取，导出并下载文件（submit/status/wait/export/download）。当用户提到 PDF/pdfs、OCR、扫描件、截图、extract text/tables、表格抽取、文档转换、Markdown、LaTeX/TeX、DOCX、doc2x、doc2x-mcp、MCP 时使用。
 ---
 
 # Doc2x MCP Tool-Use Skill (for LLM)

@@ -83,13 +83,13 @@ MIT License，详见 `LICENSE`。
 不需要 clone 仓库的一键安装（推荐）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh
+curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill.sh | sh
 ```
 
 覆盖重装：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh -s -- --force
+curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill.sh | sh -s -- --force
 ```
 
 在本仓库源码目录安装：
@@ -108,9 +108,10 @@ npm run skill:install
 说明：
 
 - `--target auto`（默认）会同时安装到 Codex + Claude；如只想装其中一个，用 `--target codex|claude`。
-- Windows PowerShell 一键安装：`irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.ps1 | iex`
+- PowerShell 7+ 一键安装：`irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill.ps1 | iex`
+- Windows PowerShell 5.1 一键安装：`irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill-winps.ps1 | iex`
 
 覆盖安装目录示例：
 
-- mac/linux：`CODEX_HOME=/custom/.codex curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh -s -- --target codex`
-- Windows：`$env:CODEX_HOME="C:\\path\\.codex"; irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.ps1 | iex`
+- mac/linux：`CODEX_HOME=/custom/.codex curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill.sh | sh -s -- --target codex`
+- Windows：`$env:CODEX_HOME="C:\\path\\.codex"; irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill.ps1 | iex`

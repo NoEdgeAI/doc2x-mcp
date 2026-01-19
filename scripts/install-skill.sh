@@ -20,7 +20,7 @@ Options:
 Env:
   CODEX_HOME            override Codex home (default: ~/.codex)
   CLAUDE_HOME           override Claude home (default: ~/.claude)
-  DOC2X_MCP_RAW_BASE    raw base URL (default: https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main)
+  DOC2X_MCP_RAW_BASE    raw base URL (default: https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts)
 EOF
 }
 
@@ -102,7 +102,7 @@ pick_skills_roots() {
 
 SKILLS_ROOTS="$(pick_skills_roots)"
 
-RAW_BASE="${DOC2X_MCP_RAW_BASE:-https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main}"
+RAW_BASE="${DOC2X_MCP_RAW_BASE:-https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts}"
 REMOTE_SKILL_MD_URL="$RAW_BASE/skills/doc2x-mcp/SKILL.md"
 
 LOCAL_SKILL_MD_PATH=""
