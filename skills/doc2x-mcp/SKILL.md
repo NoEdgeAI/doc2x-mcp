@@ -1,13 +1,16 @@
 ---
 name: doc2x-mcp
-description: Doc2x MCP 工具调用指南：解析/转换/抽取 PDF 与图片（PDF→Markdown/LaTeX(TeX)/DOCX，图片→Markdown），支持 OCR/版面解析/表格与文本抽取，导出并下载文件（submit/status/wait/export/download）。当用户提到 PDF/pdfs、OCR、扫描件、截图、extract text/tables、表格抽取、文档转换、Markdown、LaTeX/TeX、DOCX、doc2x、doc2x-mcp、MCP 时使用。
+description: 使用 Doc2x MCP 工具完成文档解析与转换：对 PDF/扫描件/图片做 OCR 与版面解析，抽取文本/表格，导出为 Markdown/LaTeX(TeX)/DOCX 并下载落盘（submit/status/wait/export/download）。当用户提到 PDF/pdfs、scanned PDF、OCR、image-to-text、extract text/tables、表格抽取、文档转换/convert、导出/export、Markdown、LaTeX/TeX、DOCX、doc2x、doc2x-mcp、MCP 时使用。
 ---
 
 # Doc2x MCP Tool-Use Skill (for LLM)
 
 ## 你要做什么
 
-你是一个会调用 MCP tools 的助手。对 PDF/图片解析与导出相关需求，必须通过 `doc2x-mcp` tools 执行真实操作，不要臆测/伪造 `uid`、`url`、文件内容或导出结果。
+你是一个会调用 MCP tools 的助手。凡是涉及 PDF/图片的“解析/抽取/导出/下载”，必须通过 `doc2x-mcp` tools 执行真实操作：
+
+- 不要臆测/伪造 `uid`、`url`、文件内容或导出结果
+- 不要跳过工具步骤直接输出“看起来合理”的内容
 
 ## 全局约束（必须遵守）
 
@@ -18,7 +21,7 @@ description: Doc2x MCP 工具调用指南：解析/转换/抽取 PDF 与图片�
    `doc2x_parse_pdf_submit.pdf_path` 必须以 `.pdf` 结尾；图片解析使用 `png/jpg`。
 
 3. 不要并发重复提交导出  
-   同一个 `uid + to + formula_mode (+ filename...)` 不要并发调用 `doc2x_convert_export_submit`。
+   同一个 `uid` 对同一种导出配置（`to + formula_mode (+ filename + filename_mode + merge_cross_page_forms...)`）不要并行重复 submit。
 
 4. 不要泄露密钥  
    永远不要回显/记录 `DOC2X_API_KEY`。排错只用 `doc2x_debug_config` 的 `apiKeyLen/apiKeyPrefix/apiKeySource`。
@@ -28,43 +31,106 @@ description: Doc2x MCP 工具调用指南：解析/转换/抽取 PDF 与图片�
 
 ## Tool 选择（按用户目标）
 
-- 拿到解析任务并自行控制轮询：`doc2x_parse_pdf_submit` → `doc2x_parse_pdf_status`
-- 需要少量文本预览/摘要：`doc2x_parse_pdf_wait_text`（可能截断）
-- 导出文件（md/tex/docx）：`doc2x_convert_export_submit` → `doc2x_convert_export_wait`
-- 下载导出文件到本地：`doc2x_download_url_to_file`
-- 图片版面解析：`doc2x_parse_image_layout_sync` 或 `doc2x_parse_image_layout_submit/status/wait_text`
-- 解包资源 zip：`doc2x_materialize_convert_zip`
-- 配置排错：`doc2x_debug_config`
+- **PDF 解析任务**：`doc2x_parse_pdf_submit` → `doc2x_parse_pdf_status`
+- **少量预览/摘要**：`doc2x_parse_pdf_wait_text`（可能截断；要完整内容请导出文件）
+- **导出文件（md/tex/docx）**：`doc2x_convert_export_submit` → `doc2x_convert_export_wait`（或直接 `doc2x_convert_export_wait` 走兼容模式一键导出）
+- **下载落盘**：`doc2x_download_url_to_file`
+- **图片版面解析**：`doc2x_parse_image_layout_sync` 或 `doc2x_parse_image_layout_submit` → `doc2x_parse_image_layout_wait_text`
+- **解包资源 zip**：`doc2x_materialize_convert_zip`
+- **配置排错**：`doc2x_debug_config`
 
 ## 标准工作流（照做）
 
-### 工作流 A：PDF → Markdown 文件（推荐）
+### 工作流 A：批量 PDF → 导出文件（MD/TEX/DOCX，高效并行版）
+
+适用于“多个 PDF 批量导出并落盘（.md / .tex / .docx）”。核心原则：
+
+- `doc2x_parse_pdf_submit` 可并行（批量提交）
+- `doc2x_parse_pdf_status` 可并行（批量轮询）
+- **流水线式并行**：某个 `uid` 一旦解析成功，立刻开始该 `uid` 的导出+下载（不必等所有 PDF 都解析完）
+- 不同 `uid` 的导出与下载可并行
+- **同一个 `uid` 的同一种导出配置（`to + formula_mode (+ filename + filename_mode + merge_cross_page_forms...)`）不要并行重复提交**
+- 同一个 `uid` 若要导出多种格式（例如 md + docx + tex），建议**按格式串行**，但不同 `uid` 仍可并行
+
+**批量提交解析任务（并行）**
+
+- 对每个 `pdf_path` 调用：`doc2x_parse_pdf_submit({ pdf_path })` → `{ uid }`
+
+**等待解析完成（并行）**
+
+- 对每个 `uid` 轮询：`doc2x_parse_pdf_status({ uid })` 直到 `status="success"`
+- 若 `status="failed"`：汇报 `detail`，该文件停止后续步骤
+
+**导出目标格式（并行，按 uid）**
+
+推荐用 `doc2x_convert_export_wait` 走“兼容模式一键导出”（当你提供 `formula_mode` 且本进程未提交过该导出时，会自动 submit 一次，然后 wait），避免你手动拆成 submit+wait：
+
+- DOCX：`doc2x_convert_export_wait({ uid, to: "docx", formula_mode: "normal" })` → `{ status: "success", url }`
+- Markdown：`doc2x_convert_export_wait({ uid, to: "md", formula_mode: "normal", filename?, filename_mode? })` → `{ status: "success", url }`
+- LaTeX：`doc2x_convert_export_wait({ uid, to: "tex", formula_mode: "dollar" })` → `{ status: "success", url }`
+
+（或显式两步：`doc2x_convert_export_submit(...)` → `doc2x_convert_export_wait({ uid, to })`）
+
+**补充建议**
+
+- `formula_mode` 是关键参数：建议总是显式传入（`"normal"` / `"dollar"`，按用户偏好选择；常见：`md/docx` 用 `"normal"`、`tex` 用 `"dollar"`）
+- `filename`/`filename_mode` 主要用于 `md/tex`：传不带扩展名的 basename，并配合 `filename_mode: "auto"`（避免 `name.md.md` / `name.tex.tex`）
+- 对同一个 `uid` 做多格式导出时，先确定顺序（例如先 md 再 docx），逐个完成再进行下一个格式
+
+**批量下载（并行）**
+
+- `doc2x_download_url_to_file({ url, output_path })` → `{ output_path, bytes_written }`
+- `output_path` 必须为绝对路径，且每个文件应唯一（建议用原文件名 + 对应扩展名：`.md` / `.tex` / `.docx`）
+
+**并发建议**
+
+- 10 个 PDF 以内通常可以直接并行；更多文件建议分批/限流（避免触发超时/限流）
+
+**向用户回报（按文件汇总）**
+
+- 成功：列出每个输入文件对应的 `output_path` 与 `bytes_written`
+- 失败：列出失败文件与错误原因（包含 `uid` 与 `detail`/错误码），并说明其余文件不受影响
+
+### 工作流 B：PDF → Markdown 文件（推荐）
 
 当用户目标是“拿到完整 Markdown / 落盘”，主链路应当是导出与下载，不要依赖 `doc2x_parse_pdf_wait_text`。
 
-1. `doc2x_parse_pdf_submit({ pdf_path })` → `{ uid }`
-2. 轮询 `doc2x_parse_pdf_status({ uid })` 直到 `status="success"`（失败则带 `detail` 汇报）
-3. `doc2x_convert_export_submit({ uid, to: "md", formula_mode: "normal", filename? })`
-4. `doc2x_convert_export_wait({ uid, to: "md" })` → `{ url }`
-5. `doc2x_download_url_to_file({ url, output_path })` → `{ output_path, bytes_written }`
-6. 回复用户：保存路径、文件大小、`uid`（必要时附上 `url`）
+**提交解析任务**
 
-### 工作流 B：PDF → 文本预览（可控长度）
+- `doc2x_parse_pdf_submit({ pdf_path })` → `{ uid }`
+
+**等待解析完成**
+
+- 轮询 `doc2x_parse_pdf_status({ uid })` 直到 `status="success"`（失败则带 `detail` 汇报）
+
+**导出 Markdown**
+
+- `doc2x_convert_export_wait({ uid, to: "md", formula_mode: "normal", filename?, filename_mode? })` → `{ status: "success", url }`
+
+**下载落盘**
+
+- `doc2x_download_url_to_file({ url, output_path })` → `{ output_path, bytes_written }`
+
+**向用户回报**
+
+- 回复用户：保存路径、文件大小、`uid`（必要时附上 `url`）
+
+### 工作流 C：PDF → 文本预览（可控长度）
 
 当用户只需要“摘要/少量预览”时才用：
 
 - `doc2x_parse_pdf_wait_text({ pdf_path | uid, max_output_chars?, max_output_pages? })`
 
-如果返回包含截断提示（`[doc2x-mcp] Output truncated ...`），应切换到“工作流 A”导出 md 获取完整内容。
+如果返回包含截断提示（`[doc2x-mcp] Output truncated ...`），应切换到“工作流 B”导出 md 获取完整内容。
 
-### 工作流 C：PDF → LaTeX / DOCX
+### 工作流 D：PDF → LaTeX / DOCX
 
 - LaTeX：把 `to` 设为 `"tex"`
 - Word：把 `to` 设为 `"docx"`
-- 调用链同“工作流 A”，仅替换 `to`
+- 调用链同“工作流 A / B”（先解析 → 再导出 → 再下载），仅替换 `to`（以及必要时调整 `formula_mode/filename`）
 - 注意：`doc2x_convert_export_submit.formula_mode` 必填（`"normal"` 或 `"dollar"`）
 
-### 工作流 D：图片 → Markdown（版面解析）
+### 工作流 E：图片 → Markdown（版面解析）
 
 - 只要结果（同步）：`doc2x_parse_image_layout_sync({ image_path })`（返回原始 JSON，可能包含 `convert_zip`）
 - 要首屏 markdown（异步）：`doc2x_parse_image_layout_submit({ image_path })` → `doc2x_parse_image_layout_wait_text({ uid })`
