@@ -98,7 +98,7 @@ if ($Dest -and $roots.Count -gt 1) {
 
 $rawBase = $env:DOC2X_MCP_RAW_BASE
 if (-not $rawBase) {
-  $rawBase = "https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts"
+  $rawBase = "https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main"
 }
 $remoteSkillMdUrl = "$rawBase/skills/doc2x-mcp/SKILL.md"
 

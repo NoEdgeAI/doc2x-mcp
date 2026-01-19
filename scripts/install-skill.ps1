@@ -73,7 +73,7 @@ if ($Dest -and $roots.Count -gt 1) {
 # Resolve SKILL.md source
 # -------------------------------------------------------------------
 
-$rawBase = $env:DOC2X_MCP_RAW_BASE ?? "https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts"
+$rawBase = $env:DOC2X_MCP_RAW_BASE ?? "https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main"
 $remoteSkillMdUrl = "$rawBase/skills/doc2x-mcp/SKILL.md"
 
 $localSkillMdPath = ""

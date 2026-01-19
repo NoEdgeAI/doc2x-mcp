@@ -83,7 +83,7 @@ Installs a tool-use skill for Codex CLI / Claude Code (teaches the LLM how to us
 One-command install without cloning (recommended):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill.sh | sh
+curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh
 ```
 
 Re-run the same command to overwrite (default behavior overwrites an existing destination directory).
@@ -104,10 +104,10 @@ The script installs to:
 Notes:
 
 - `--target auto` (default) installs to both Codex + Claude; use `--target codex|claude` to install only one.
-- PowerShell 7+ one-command install: `irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill.ps1 | iex`
-- Windows PowerShell 5.1 one-command install: `irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill-winps.ps1 | iex`
+- PowerShell 7+ one-command install: `irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.ps1 | iex`
+- Windows PowerShell 5.1 one-command install: `irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill-winps.ps1 | iex`
 
 Override install dir examples:
 
-- mac/linux: `CODEX_HOME=/custom/.codex curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill.sh | sh -s -- --target codex`
-- Windows: `$env:CODEX_HOME="C:\\path\\.codex"; irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/fix/scripts/scripts/install-skill.ps1 | iex`
+- mac/linux: `CODEX_HOME=/custom/.codex curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh -s -- --target codex`
+- Windows: `$env:CODEX_HOME="C:\\path\\.codex"; irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.ps1 | iex`
