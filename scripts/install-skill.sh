@@ -6,7 +6,7 @@ usage() {
 Install doc2x-mcp skill into Codex CLI / Claude Code skills directory.
 
 Usage:
-  sh install-skill.sh [--target auto|codex|claude] [--force]
+  sh install-skill.sh [--target auto|codex|claude]
   curl -fsSL <URL>/scripts/install-skill.sh | sh
 
 Options:
@@ -14,7 +14,7 @@ Options:
   --category  Codex category under skills root (default: public; ignored for Claude)
   --name      skill directory name (default: doc2x-mcp)
   --dest      explicit destination directory (overrides target/category/name)
-  --force     overwrite if destination exists
+  --force     allow overwriting when --dest points to an existing directory
   --dry-run   print planned paths only
 
 Env:
@@ -172,9 +172,9 @@ install_to_root() {
   fi
 
   if [ -e "$dest_dir" ]; then
-    if [ "$FORCE" != "1" ]; then
+    if [ -n "$DEST" ] && [ "$FORCE" != "1" ]; then
       echo "Destination already exists: $dest_dir" >&2
-      echo "Re-run with --force to overwrite." >&2
+      echo "Re-run with --force to overwrite an explicit --dest." >&2
       exit 1
     fi
     rm -rf "$dest_dir"

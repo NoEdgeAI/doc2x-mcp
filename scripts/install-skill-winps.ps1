@@ -11,8 +11,18 @@ Param(
   [switch]$DryRun
 )
 
-Set-StrictMode -Version Latest
+Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
+
+# -------------------------------------------------------------------
+# Best-effort TLS defaults for GitHub (Windows PowerShell 5.1)
+# -------------------------------------------------------------------
+
+try {
+  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+} catch {
+  # ignore
+}
 
 # -------------------------------------------------------------------
 # Environment & paths
@@ -20,13 +30,23 @@ $ErrorActionPreference = "Stop"
 
 $userHome = $HOME
 if (-not $userHome) {
-  throw '$HOME is not set'
+  $userHome = $env:USERPROFILE
+}
+if (-not $userHome) {
+  throw 'Cannot resolve home directory ($HOME / $env:USERPROFILE).'
 }
 
-$codexHome  = $env:CODEX_HOME  ?? (Join-Path $userHome ".codex")
-$claudeHome = $env:CLAUDE_HOME ?? (Join-Path $userHome ".claude")
+$codexHome = $env:CODEX_HOME
+if (-not $codexHome) {
+  $codexHome = Join-Path $userHome ".codex"
+}
 
-$codexRoot  = Join-Path $codexHome  "skills"
+$claudeHome = $env:CLAUDE_HOME
+if (-not $claudeHome) {
+  $claudeHome = Join-Path $userHome ".claude"
+}
+
+$codexRoot = Join-Path $codexHome "skills"
 $claudeRoot = Join-Path $claudeHome "skills"
 
 # -------------------------------------------------------------------
@@ -41,13 +61,16 @@ function Get-InstallRoots {
   )
 
   switch ($Target) {
-    "codex"  { return @($CodexRoot) }
+    "codex" { return @($CodexRoot) }
     "claude" { return @($ClaudeRoot) }
     default {
       $roots = @()
-      if (Test-Path $CodexRoot)  { $roots += $CodexRoot }
+      if (Test-Path $CodexRoot) { $roots += $CodexRoot }
       if (Test-Path $ClaudeRoot) { $roots += $ClaudeRoot }
-      return ($roots.Count -gt 0) ? $roots : @($CodexRoot)
+      if ($roots.Count -gt 0) {
+        return $roots
+      }
+      return @($CodexRoot)
     }
   }
 }
@@ -73,7 +96,10 @@ if ($Dest -and $roots.Count -gt 1) {
 # Resolve SKILL.md source
 # -------------------------------------------------------------------
 
-$rawBase = $env:DOC2X_MCP_RAW_BASE ?? "https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main"
+$rawBase = $env:DOC2X_MCP_RAW_BASE
+if (-not $rawBase) {
+  $rawBase = "https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main"
+}
 $remoteSkillMdUrl = "$rawBase/skills/doc2x-mcp/SKILL.md"
 
 $localSkillMdPath = ""
@@ -87,12 +113,12 @@ if (Test-Path ".\skills\doc2x-mcp\SKILL.md") {
 
 if ($DryRun) {
   [pscustomobject]@{
-    roots                  = $roots
-    remote_skill_md_url    = $remoteSkillMdUrl
-    local_skill_md_path    = $localSkillMdPath
-    category               = $Category
-    name                   = $Name
-    dest                   = $Dest
+    roots               = $roots
+    remote_skill_md_url = $remoteSkillMdUrl
+    local_skill_md_path = $localSkillMdPath
+    category            = $Category
+    name                = $Name
+    dest                = $Dest
   } | ConvertTo-Json -Depth 4
   return
 }
@@ -102,19 +128,18 @@ if ($DryRun) {
 # -------------------------------------------------------------------
 
 $tempSkillMd = ""
-$tempIsTemp  = $false
+$tempIsTemp = $false
 
 try {
   if ($localSkillMdPath) {
     $tempSkillMd = $localSkillMdPath
   } else {
     $tempSkillMd = New-TempFilePath
-    $tempIsTemp  = $true
-    Invoke-WebRequest -Uri $remoteSkillMdUrl -OutFile $tempSkillMd | Out-Null
+    $tempIsTemp = $true
+    Invoke-WebRequest -UseBasicParsing -Uri $remoteSkillMdUrl -OutFile $tempSkillMd | Out-Null
   }
 
   foreach ($root in $roots) {
-
     if ($Dest) {
       $destDir = $Dest
     } elseif ($root -eq $codexRoot) {

@@ -28,7 +28,7 @@
 ```json
 {
   "command": "npx",
-  "args": ["-y", "@noedgeai-org/doc2x-mcp"],
+  "args": ["-y", "@noedgeai-org/doc2x-mcp@latest"],
   "env": {
     "DOC2X_API_KEY": "sk-xxx",
     "DOC2X_BASE_URL": "https://v2.doc2x.noedgeai.com"
@@ -86,11 +86,7 @@ MIT License，详见 `LICENSE`。
 curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh
 ```
 
-覆盖重装：
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh -s -- --force
-```
+重复执行同一条命令即可覆盖安装（默认会覆盖已存在目录）。
 
 在本仓库源码目录安装：
 
@@ -108,7 +104,8 @@ npm run skill:install
 说明：
 
 - `--target auto`（默认）会同时安装到 Codex + Claude；如只想装其中一个，用 `--target codex|claude`。
-- Windows PowerShell 一键安装：`irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.ps1 | iex`
+- PowerShell 7+ 一键安装：`irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.ps1 | iex`
+- Windows PowerShell 5.1 一键安装：`irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill-winps.ps1 | iex`
 
 覆盖安装目录示例：
 

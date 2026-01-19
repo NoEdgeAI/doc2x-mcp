@@ -86,11 +86,7 @@ One-command install without cloning (recommended):
 curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh
 ```
 
-Overwrite reinstall:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh -s -- --force
-```
+Re-run the same command to overwrite (default behavior overwrites an existing destination directory).
 
 Install from this repo source directory:
 
@@ -108,7 +104,8 @@ The script installs to:
 Notes:
 
 - `--target auto` (default) installs to both Codex + Claude; use `--target codex|claude` to install only one.
-- Windows PowerShell one-command install: `irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.ps1 | iex`
+- PowerShell 7+ one-command install: `irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.ps1 | iex`
+- Windows PowerShell 5.1 one-command install: `irm https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill-winps.ps1 | iex`
 
 Override install dir examples:
 
