@@ -1,87 +1,120 @@
+[CmdletBinding()]
 Param(
   [ValidateSet("auto", "codex", "claude")]
   [string]$Target = "auto",
+
   [string]$Category = "public",
   [string]$Name = "doc2x-mcp",
   [string]$Dest = "",
+
   [switch]$Force,
   [switch]$DryRun
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-function Get-SkillsRoot([string]$target, [string]$codexHome, [string]$claudeHome) {
-  $codexRoot = Join-Path $codexHome "skills"
-  $claudeRoot = Join-Path $claudeHome "skills"
+# -------------------------------------------------------------------
+# Environment & paths
+# -------------------------------------------------------------------
 
-  if ($target -eq "codex") { return $codexRoot }
-  if ($target -eq "claude") { return $claudeRoot }
-
-  if (Test-Path $codexRoot) { return $codexRoot }
-  if (Test-Path $claudeRoot) { return $claudeRoot }
-  return $codexRoot
+$userHome = $HOME
+if (-not $userHome) {
+  throw '$HOME is not set'
 }
 
-$home = $HOME
-if (-not $home) { throw '$HOME is not set' }
+$codexHome  = $env:CODEX_HOME  ?? (Join-Path $userHome ".codex")
+$claudeHome = $env:CLAUDE_HOME ?? (Join-Path $userHome ".claude")
 
-$codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $home ".codex" }
-$claudeHome = if ($env:CLAUDE_HOME) { $env:CLAUDE_HOME } else { Join-Path $home ".claude" }
-
-$codexRoot = Join-Path $codexHome "skills"
+$codexRoot  = Join-Path $codexHome  "skills"
 $claudeRoot = Join-Path $claudeHome "skills"
 
-$roots = @()
-if ($Target -eq "codex") {
-  $roots = @($codexRoot)
-} elseif ($Target -eq "claude") {
-  $roots = @($claudeRoot)
-} else {
-  $roots = @($codexRoot, $claudeRoot)
+# -------------------------------------------------------------------
+# Helper functions
+# -------------------------------------------------------------------
+
+function Get-InstallRoots {
+  param(
+    [string]$Target,
+    [string]$CodexRoot,
+    [string]$ClaudeRoot
+  )
+
+  switch ($Target) {
+    "codex"  { return @($CodexRoot) }
+    "claude" { return @($ClaudeRoot) }
+    default {
+      $roots = @()
+      if (Test-Path $CodexRoot)  { $roots += $CodexRoot }
+      if (Test-Path $ClaudeRoot) { $roots += $ClaudeRoot }
+      return ($roots.Count -gt 0) ? $roots : @($CodexRoot)
+    }
+  }
 }
+
+function New-TempFilePath {
+  return [System.IO.Path]::Combine(
+    [System.IO.Path]::GetTempPath(),
+    ([System.Guid]::NewGuid().ToString() + ".md")
+  )
+}
+
+# -------------------------------------------------------------------
+# Resolve install roots
+# -------------------------------------------------------------------
+
+$roots = Get-InstallRoots -Target $Target -CodexRoot $codexRoot -ClaudeRoot $claudeRoot
 
 if ($Dest -and $roots.Count -gt 1) {
-  throw "-Dest cannot be used when installing to multiple targets (auto found both Codex/Claude)."
+  throw "-Dest cannot be used when installing to multiple targets."
 }
 
-$rawBase = if ($env:DOC2X_MCP_RAW_BASE) { $env:DOC2X_MCP_RAW_BASE } else { "https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main" }
+# -------------------------------------------------------------------
+# Resolve SKILL.md source
+# -------------------------------------------------------------------
+
+$rawBase = $env:DOC2X_MCP_RAW_BASE ?? "https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main"
 $remoteSkillMdUrl = "$rawBase/skills/doc2x-mcp/SKILL.md"
 
 $localSkillMdPath = ""
-if (Test-Path ".\\skills\\doc2x-mcp\\SKILL.md") {
-  $localSkillMdPath = ".\\skills\\doc2x-mcp\\SKILL.md"
+if (Test-Path ".\skills\doc2x-mcp\SKILL.md") {
+  $localSkillMdPath = ".\skills\doc2x-mcp\SKILL.md"
 }
+
+# -------------------------------------------------------------------
+# Dry run
+# -------------------------------------------------------------------
 
 if ($DryRun) {
   [pscustomobject]@{
-    skills_roots = $roots
-    remote_skill_md_url = $remoteSkillMdUrl
-    local_skill_md_path = $localSkillMdPath
-    category = $Category
-    name = $Name
-    dest = $Dest
+    roots                  = $roots
+    remote_skill_md_url    = $remoteSkillMdUrl
+    local_skill_md_path    = $localSkillMdPath
+    category               = $Category
+    name                   = $Name
+    dest                   = $Dest
   } | ConvertTo-Json -Depth 4
-  exit 0
+  return
 }
 
-function New-TempFilePath() {
-  return [System.IO.Path]::GetTempFileName()
-}
+# -------------------------------------------------------------------
+# Download / install
+# -------------------------------------------------------------------
 
 $tempSkillMd = ""
-$tempSkillMdIsTemp = $false
+$tempIsTemp  = $false
+
 try {
   if ($localSkillMdPath) {
     $tempSkillMd = $localSkillMdPath
-    $tempSkillMdIsTemp = $false
   } else {
     $tempSkillMd = New-TempFilePath
-    $tempSkillMdIsTemp = $true
+    $tempIsTemp  = $true
     Invoke-WebRequest -Uri $remoteSkillMdUrl -OutFile $tempSkillMd | Out-Null
   }
 
   foreach ($root in $roots) {
-    $destDir = ""
+
     if ($Dest) {
       $destDir = $Dest
     } elseif ($root -eq $codexRoot) {
@@ -91,6 +124,7 @@ try {
     } else {
       $destDir = Join-Path (Join-Path $root $Category) $Name
     }
+
     $skillMdDest = Join-Path $destDir "SKILL.md"
 
     if (Test-Path $destDir) {
@@ -102,10 +136,12 @@ try {
 
     New-Item -ItemType Directory -Force -Path $destDir | Out-Null
     Copy-Item -Force $tempSkillMd $skillMdDest
+
     Write-Output "Installed skill to: $destDir"
   }
-} finally {
-  if ($tempSkillMdIsTemp -and $tempSkillMd -and (Test-Path $tempSkillMd)) {
+}
+finally {
+  if ($tempIsTemp -and $tempSkillMd -and (Test-Path $tempSkillMd)) {
     Remove-Item -Force $tempSkillMd
   }
 }
