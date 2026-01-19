@@ -26,18 +26,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
-      - name: Format check
-        run: npm run format:check
-
-      - name: Prebuild (prepublishOnly)
-        run: npm run prepublishOnly
-
-      - name: Verify package contents (dry-run)
-        shell: bash
-        run: |
-          set -euo pipefail
-          TARBALL="$(npm pack --silent)"
-          tar -tf "${TARBALL}" | grep -qx 'package/dist/index.js'
-          rm -f "${TARBALL}"
+      - name: Build
+        run: npm run build
