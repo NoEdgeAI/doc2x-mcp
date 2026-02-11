@@ -21,13 +21,27 @@ description: 使用 Doc2x MCP 工具完成文档解析与转换：对 PDF/扫描
    `doc2x_parse_pdf_submit.pdf_path` 必须以 `.pdf` 结尾；图片解析使用 `png/jpg`。
 
 3. 不要并发重复提交导出  
-   同一个 `uid` 对同一种导出配置（`to + formula_mode (+ filename + filename_mode + merge_cross_page_forms...)`）不要并行重复 submit。
+   同一个 `uid` 对同一种导出配置（`to + formula_mode + formula_level (+ filename + filename_mode + merge_cross_page_forms...)`）不要并行重复 submit。
 
 4. 不要泄露密钥  
    永远不要回显/记录 `DOC2X_API_KEY`。排错只用 `doc2x_debug_config` 的 `apiKeyLen/apiKeyPrefix/apiKeySource`。
 
 5. 不要伪造下载 URL  
    下载必须使用 `doc2x_convert_export_*` 返回的 `url`；不要自己拼接。
+
+6. 参数生效边界  
+   `model` 仅用于 PDF 解析提交（默认 `v2`，可选 `v3-2026`）；`formula_level` 仅用于导出（`doc2x_convert_export_*`），并且只在源解析任务使用 `v3-2026` 时生效（`v2` 下无效）。
+
+## 关键参数语义（避免误用）
+
+- `doc2x_parse_pdf_submit` / `doc2x_parse_pdf_wait_text(pdf_path 提交分支)`  
+  - 可选 `model: "v3-2026"`；不传则默认 `v2`。
+- `doc2x_convert_export_submit` / `doc2x_convert_export_wait`  
+  - `formula_mode`：`"normal"` 或 `"dollar"`（关键参数，建议总是显式传入）。  
+  - `formula_level`：`0 | 1 | 2`（可选）  
+    - `0`：不退化公式（保留原始 Markdown）
+    - `1`：行内公式退化为普通文本（`\(...\)`、`$...$`）
+    - `2`：行内 + 块级公式全部退化为普通文本（`\(...\)`、`$...$`、`\[...\]`、`$$...$$`）
 
 ## Tool 选择（按用户目标）
 
@@ -49,12 +63,12 @@ description: 使用 Doc2x MCP 工具完成文档解析与转换：对 PDF/扫描
 - `doc2x_parse_pdf_status` 可并行（批量轮询）
 - **流水线式并行**：某个 `uid` 一旦解析成功，立刻开始该 `uid` 的导出+下载（不必等所有 PDF 都解析完）
 - 不同 `uid` 的导出与下载可并行
-- **同一个 `uid` 的同一种导出配置（`to + formula_mode (+ filename + filename_mode + merge_cross_page_forms...)`）不要并行重复提交**
+- **同一个 `uid` 的同一种导出配置（`to + formula_mode + formula_level (+ filename + filename_mode + merge_cross_page_forms...)`）不要并行重复提交**
 - 同一个 `uid` 若要导出多种格式（例如 md + docx + tex），建议**按格式串行**，但不同 `uid` 仍可并行
 
 **批量提交解析任务（并行）**
 
-- 对每个 `pdf_path` 调用：`doc2x_parse_pdf_submit({ pdf_path })` → `{ uid }`
+- 对每个 `pdf_path` 调用：`doc2x_parse_pdf_submit({ pdf_path, model? })` → `{ uid }`
 
 **等待解析完成（并行）**
 
@@ -65,15 +79,16 @@ description: 使用 Doc2x MCP 工具完成文档解析与转换：对 PDF/扫描
 
 推荐用 `doc2x_convert_export_wait` 走“兼容模式一键导出”（当你提供 `formula_mode` 且本进程未提交过该导出时，会自动 submit 一次，然后 wait），避免你手动拆成 submit+wait：
 
-- DOCX：`doc2x_convert_export_wait({ uid, to: "docx", formula_mode: "normal" })` → `{ status: "success", url }`
-- Markdown：`doc2x_convert_export_wait({ uid, to: "md", formula_mode: "normal", filename?, filename_mode? })` → `{ status: "success", url }`
-- LaTeX：`doc2x_convert_export_wait({ uid, to: "tex", formula_mode: "dollar" })` → `{ status: "success", url }`
+- DOCX：`doc2x_convert_export_wait({ uid, to: "docx", formula_mode: "normal", formula_level? })` → `{ status: "success", url }`
+- Markdown：`doc2x_convert_export_wait({ uid, to: "md", formula_mode: "normal", formula_level?, filename?, filename_mode? })` → `{ status: "success", url }`
+- LaTeX：`doc2x_convert_export_wait({ uid, to: "tex", formula_mode: "dollar", formula_level? })` → `{ status: "success", url }`
 
 （或显式两步：`doc2x_convert_export_submit(...)` → `doc2x_convert_export_wait({ uid, to })`）
 
 **补充建议**
 
 - `formula_mode` 是关键参数：建议总是显式传入（`"normal"` / `"dollar"`，按用户偏好选择；常见：`md/docx` 用 `"normal"`、`tex` 用 `"dollar"`）
+- 需要做公式退化时显式传 `formula_level`（`0/1/2`）；若不需要退化，建议显式传 `0`，避免调用端默认值歧义
 - `filename`/`filename_mode` 主要用于 `md/tex`：传不带扩展名的 basename，并配合 `filename_mode: "auto"`（避免 `name.md.md` / `name.tex.tex`）
 - 对同一个 `uid` 做多格式导出时，先确定顺序（例如先 md 再 docx），逐个完成再进行下一个格式
 
@@ -97,7 +112,7 @@ description: 使用 Doc2x MCP 工具完成文档解析与转换：对 PDF/扫描
 
 **提交解析任务**
 
-- `doc2x_parse_pdf_submit({ pdf_path })` → `{ uid }`
+- `doc2x_parse_pdf_submit({ pdf_path, model? })` → `{ uid }`
 
 **等待解析完成**
 
@@ -105,7 +120,7 @@ description: 使用 Doc2x MCP 工具完成文档解析与转换：对 PDF/扫描
 
 **导出 Markdown**
 
-- `doc2x_convert_export_wait({ uid, to: "md", formula_mode: "normal", filename?, filename_mode? })` → `{ status: "success", url }`
+- `doc2x_convert_export_wait({ uid, to: "md", formula_mode: "normal", formula_level?, filename?, filename_mode? })` → `{ status: "success", url }`
 
 **下载落盘**
 
@@ -127,8 +142,8 @@ description: 使用 Doc2x MCP 工具完成文档解析与转换：对 PDF/扫描
 
 - LaTeX：把 `to` 设为 `"tex"`
 - Word：把 `to` 设为 `"docx"`
-- 调用链同“工作流 A / B”（先解析 → 再导出 → 再下载），仅替换 `to`（以及必要时调整 `formula_mode/filename`）
-- 注意：`doc2x_convert_export_submit.formula_mode` 必填（`"normal"` 或 `"dollar"`）
+- 调用链同“工作流 A / B”（先解析 → 再导出 → 再下载），仅替换 `to`（以及必要时调整 `formula_mode/formula_level/filename`）
+- 注意：`doc2x_convert_export_submit.formula_mode` 必填（`"normal"` 或 `"dollar"`）；`formula_level` 可选（`0/1/2`）
 
 ### 工作流 E：图片 → Markdown（版面解析）
 
