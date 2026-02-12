@@ -5,7 +5,13 @@ import _ from 'lodash';
 import { z } from 'zod';
 
 import { CONFIG, RESOLVED_KEY, parseDownloadUrlAllowlist } from '#config';
-import { convertExportResult, convertExportSubmit, convertExportWaitByUid } from '#doc2x/convert';
+import {
+  CONVERT_FORMULA_LEVELS,
+  type ConvertFormulaLevel,
+  convertExportResult,
+  convertExportSubmit,
+  convertExportWaitByUid,
+} from '#doc2x/convert';
 import { downloadUrlToFile } from '#doc2x/download';
 import {
   parseImageLayoutStatus,
@@ -14,12 +20,27 @@ import {
   parseImageLayoutWaitTextByUid,
 } from '#doc2x/image';
 import { materializeConvertZip } from '#doc2x/materialize';
-import { parsePdfStatus, parsePdfSubmit, parsePdfWaitTextByUid } from '#doc2x/pdf';
+import {
+  PARSE_PDF_MODELS,
+  type ParsePdfModel,
+  parsePdfStatus,
+  parsePdfSubmit,
+  parsePdfWaitTextByUid,
+} from '#doc2x/pdf';
 import { ToolError } from '#errors';
 import { TOOL_ERROR_CODE_INVALID_ARGUMENT } from '#errorCodes';
 import { asErrorResult, asJsonResult, asTextResult } from '#mcp/results';
 
 type FileSig = { absPath: string; size: number; mtimeMs: number };
+type ConvertSubmitKeyInput = {
+  uid: string;
+  to: 'md' | 'tex' | 'docx';
+  formula_mode?: 'normal' | 'dollar';
+  formula_level?: ConvertFormulaLevel;
+  filename?: string;
+  filename_mode?: 'auto' | 'raw';
+  merge_cross_page_forms?: boolean;
+};
 
 async function fileSig(p: string): Promise<FileSig> {
   const absPath = path.resolve(p);
@@ -29,6 +50,26 @@ async function fileSig(p: string): Promise<FileSig> {
 
 function sameSig(a: FileSig, b: FileSig): boolean {
   return a.absPath === b.absPath && a.size === b.size && a.mtimeMs === b.mtimeMs;
+}
+
+function normalizeParsePdfModel(model?: ParsePdfModel): ParsePdfModel | 'v2' {
+  return model ?? 'v2';
+}
+
+function makePdfUidCacheKey(absPath: string, model?: ParsePdfModel): string {
+  return JSON.stringify([absPath, normalizeParsePdfModel(model)]);
+}
+
+function makeConvertSubmitKey(args: ConvertSubmitKeyInput): string {
+  return JSON.stringify({
+    uid: args.uid,
+    to: args.to,
+    formula_mode: args.formula_mode ?? null,
+    formula_level: args.formula_level ?? null,
+    filename: args.filename ?? null,
+    filename_mode: args.filename_mode ?? null,
+    merge_cross_page_forms: args.merge_cross_page_forms ?? null,
+  });
 }
 
 export function registerTools(server: McpServer) {
@@ -48,13 +89,19 @@ export function registerTools(server: McpServer) {
           .describe(
             "Absolute path to a local PDF file. Use an absolute path (relative paths are resolved from the MCP server process cwd, which may be '/'). Must end with '.pdf'.",
           ),
+        model: z
+          .enum(PARSE_PDF_MODELS)
+          .optional()
+          .describe(
+            "Optional parse model. Use 'v3-2026' to try the latest model. Omit this field to use default v2.",
+          ),
       },
     },
-    async ({ pdf_path }) => {
+    async ({ pdf_path, model }: { pdf_path: string; model?: ParsePdfModel }) => {
       try {
         const sig = await fileSig(pdf_path);
-        const res = await parsePdfSubmit(pdf_path);
-        pdfUidCache.set(sig.absPath, { sig, uid: res.uid });
+        const res = await parsePdfSubmit(pdf_path, { model });
+        pdfUidCache.set(makePdfUidCacheKey(sig.absPath, model), { sig, uid: res.uid });
         return asJsonResult(res);
       } catch (e) {
         return asErrorResult(e);
@@ -118,6 +165,12 @@ export function registerTools(server: McpServer) {
           .describe(
             'Max pages to merge into returned text (0 = unlimited). Default can be set via env DOC2X_PARSE_PDF_MAX_OUTPUT_PAGES.',
           ),
+        model: z
+          .enum(PARSE_PDF_MODELS)
+          .optional()
+          .describe(
+            "Optional parse model used only when submitting from pdf_path. Use 'v3-2026' to try latest model. Omit this field to use default v2.",
+          ),
       },
     },
     async (args: {
@@ -128,6 +181,7 @@ export function registerTools(server: McpServer) {
       join_with?: string;
       max_output_chars?: number;
       max_output_pages?: number;
+      model?: ParsePdfModel;
     }) => {
       try {
         const maxOutputChars = args.max_output_chars ?? CONFIG.parsePdfMaxOutputChars;
@@ -168,10 +222,12 @@ export function registerTools(server: McpServer) {
         }
 
         const sig = await fileSig(pdfPath);
-        const cached = pdfUidCache.get(sig.absPath);
+        const model = args.model;
+        const cacheKey = makePdfUidCacheKey(sig.absPath, model);
+        const cached = pdfUidCache.get(cacheKey);
         const resolvedUid = cached && sameSig(cached.sig, sig) ? cached.uid : '';
-        const finalUid = resolvedUid || (await parsePdfSubmit(pdfPath)).uid;
-        pdfUidCache.set(sig.absPath, { sig, uid: finalUid });
+        const finalUid = resolvedUid || (await parsePdfSubmit(pdfPath, { model })).uid;
+        pdfUidCache.set(cacheKey, { sig, uid: finalUid });
 
         const out = await parsePdfWaitTextByUid({
           uid: finalUid,
@@ -198,6 +254,16 @@ export function registerTools(server: McpServer) {
         uid: z.string().min(1).describe('Doc2x parse task uid returned by doc2x_parse_pdf_submit.'),
         to: z.enum(['md', 'tex', 'docx']),
         formula_mode: z.enum(['normal', 'dollar']),
+        formula_level: z
+          .union([
+            z.literal(CONVERT_FORMULA_LEVELS[0]),
+            z.literal(CONVERT_FORMULA_LEVELS[1]),
+            z.literal(CONVERT_FORMULA_LEVELS[2]),
+          ])
+          .optional()
+          .describe(
+            'Optional formula degradation level. Effective only when source parse uses model=v3-2026 (ignored by v2). 0: keep formulas, 1: degrade inline formulas, 2: degrade inline and block formulas.',
+          ),
         filename: z
           .string()
           .describe(
@@ -215,14 +281,7 @@ export function registerTools(server: McpServer) {
     },
     async (args) => {
       try {
-        const key = JSON.stringify({
-          uid: args.uid,
-          to: args.to,
-          formula_mode: args.formula_mode,
-          filename: args.filename ?? null,
-          filename_mode: args.filename_mode ?? null,
-          merge_cross_page_forms: args.merge_cross_page_forms ?? null,
-        });
+        const key = makeConvertSubmitKey(args);
         const res = await convertExportSubmit(args);
         convertSubmitCache.add(key);
         return asJsonResult(res);
@@ -261,6 +320,16 @@ export function registerTools(server: McpServer) {
           .enum(['md', 'tex', 'docx'])
           .describe('Expected target format. Used to verify the result URL.'),
         formula_mode: z.enum(['normal', 'dollar']).optional(),
+        formula_level: z
+          .union([
+            z.literal(CONVERT_FORMULA_LEVELS[0]),
+            z.literal(CONVERT_FORMULA_LEVELS[1]),
+            z.literal(CONVERT_FORMULA_LEVELS[2]),
+          ])
+          .optional()
+          .describe(
+            'Optional formula degradation level used when this tool auto-submits export (formula_mode must be provided). Effective only when source parse uses model=v3-2026 (ignored by v2).',
+          ),
         filename: z.string().optional(),
         filename_mode: z.enum(['auto', 'raw']).optional(),
         merge_cross_page_forms: z.boolean().optional(),
@@ -272,6 +341,7 @@ export function registerTools(server: McpServer) {
       uid: string;
       to: 'md' | 'tex' | 'docx';
       formula_mode?: 'normal' | 'dollar';
+      formula_level?: ConvertFormulaLevel;
       filename?: string;
       filename_mode?: 'auto' | 'raw';
       merge_cross_page_forms?: boolean;
@@ -280,19 +350,13 @@ export function registerTools(server: McpServer) {
     }) => {
       try {
         if (args.formula_mode) {
-          const key = JSON.stringify({
-            uid: args.uid,
-            to: args.to,
-            formula_mode: args.formula_mode,
-            filename: args.filename ?? null,
-            filename_mode: args.filename_mode ?? null,
-            merge_cross_page_forms: args.merge_cross_page_forms ?? null,
-          });
+          const key = makeConvertSubmitKey(args);
           if (!convertSubmitCache.has(key)) {
             await convertExportSubmit({
               uid: args.uid,
               to: args.to,
               formula_mode: args.formula_mode,
+              formula_level: args.formula_level,
               filename: args.filename,
               filename_mode: args.filename_mode,
               merge_cross_page_forms: args.merge_cross_page_forms,

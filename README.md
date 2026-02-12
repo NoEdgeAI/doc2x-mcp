@@ -72,6 +72,27 @@ DOC2X_API_KEY=sk-xxx npm start
 - `doc2x_materialize_convert_zip`
 - `doc2x_debug_config`
 
+### PDF 解析模型（`doc2x_parse_pdf_submit` / `doc2x_parse_pdf_wait_text`）
+
+- 可选参数：`model`
+- 可选值：仅 `v3-2026`（最新模型）
+- 说明：不传 `model` 时默认使用 `v2`；若想体验最新模型，传：
+
+```json
+{
+  "model": "v3-2026"
+}
+```
+
+### 导出公式参数（`doc2x_convert_export_submit` / `doc2x_convert_export_wait`）
+
+- 必选参数：`formula_mode`（`normal` / `dollar`）
+- 可选参数：`formula_level`（`int32`，仅源解析任务为 `model=v3-2026` 时生效，`v2` 下无效）
+- 取值说明：
+  - `0`：不退化公式（保留原始 Markdown）
+  - `1`：行内公式变为普通文本（退化 `\\(...\\)` 和 `$...$`）
+  - `2`：全部公式变为普通文本（退化 `\\(...\\)`、`$...$`、`\\[...\\]`、`$$...$$`）
+
 ## 5) 协议
 
 MIT License，详见 `LICENSE`。

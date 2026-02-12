@@ -10,6 +10,8 @@ import { HTTP_METHOD_GET, HTTP_METHOD_POST } from '#doc2x/http';
 import { v2 } from '#doc2x/paths';
 
 type ExportFilenameMode = 'auto' | 'raw';
+export const CONVERT_FORMULA_LEVELS = [0, 1, 2] as const;
+export type ConvertFormulaLevel = (typeof CONVERT_FORMULA_LEVELS)[number];
 
 function normalizeExportFilename(
   filename: string,
@@ -37,6 +39,7 @@ export async function convertExportSubmit(args: {
   uid: string;
   to: 'md' | 'tex' | 'docx';
   formula_mode: 'normal' | 'dollar';
+  formula_level?: ConvertFormulaLevel;
   filename?: string;
   merge_cross_page_forms?: boolean;
   filename_mode?: ExportFilenameMode;
@@ -46,6 +49,7 @@ export async function convertExportSubmit(args: {
     to: args.to,
     formula_mode: args.formula_mode,
   };
+  if (args.formula_level != null) body.formula_level = args.formula_level;
   if (args.merge_cross_page_forms != null)
     body.merge_cross_page_forms = args.merge_cross_page_forms;
   if (args.filename != null)

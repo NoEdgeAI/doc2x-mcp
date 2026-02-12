@@ -72,6 +72,27 @@ DOC2X_API_KEY=sk-xxx npm start
 - `doc2x_materialize_convert_zip`
 - `doc2x_debug_config`
 
+### PDF Parse Model (`doc2x_parse_pdf_submit` / `doc2x_parse_pdf_wait_text`)
+
+- Optional parameter: `model`
+- Supported values: only `v3-2026` (latest model)
+- Notes: omit `model` to use default `v2`; to try the latest model, pass:
+
+```json
+{
+  "model": "v3-2026"
+}
+```
+
+### Export Formula Parameters (`doc2x_convert_export_submit` / `doc2x_convert_export_wait`)
+
+- Required parameter: `formula_mode` (`normal` / `dollar`)
+- Optional parameter: `formula_level` (`int32`, effective only when the source parse task uses `model=v3-2026`; ignored by `v2`)
+- Value mapping:
+  - `0`: keep formulas as-is (preserve original Markdown)
+  - `1`: degrade inline formulas to plain text (`\\(...\\)` and `$...$`)
+  - `2`: degrade all formulas to plain text (`\\(...\\)`, `$...$`, `\\[...\\]`, `$$...$$`)
+
 ## 5) License
 
 MIT License. See `LICENSE`.
