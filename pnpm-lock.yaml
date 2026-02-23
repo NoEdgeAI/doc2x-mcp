@@ -17,6 +17,9 @@ importers:
       lodash:
         specifier: 4.17.23
         version: 4.17.23
+      lru-cache:
+        specifier: ^11.2.6
+        version: 11.2.6
       zod:
         specifier: latest
         version: 4.3.6
@@ -252,6 +255,10 @@ packages:
 
   lodash@4.17.23:
     resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
+
+  lru-cache@11.2.6:
+    resolution: {integrity: sha512-ESL2CrkS/2wTPfuend7Zhkzo2u0daGJ/A2VucJOgQ/C48S/zB8MMeMHSGKYpXhIjbPxfuezITkaBH1wqv00DDQ==}
+    engines: {node: 20 || >=22}
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -666,6 +673,8 @@ snapshots:
   json-schema-typed@8.0.2: {}
 
   lodash@4.17.23: {}
+
+  lru-cache@11.2.6: {}
 
   math-intrinsics@1.1.0: {}
 

@@ -2,8 +2,9 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 
 import { CONFIG } from '#config';
-import { ToolError } from '#errors';
+import { ToolError, coerceToolError, isRetryableError } from '#errors';
 import {
+  TOOL_ERROR_CODE_INTERNAL_ERROR,
   TOOL_ERROR_CODE_INVALID_JSON,
   TOOL_ERROR_CODE_MISSING_API_KEY,
   httpErrorCode,
@@ -13,19 +14,35 @@ import { jitteredBackoffMs, sleep } from '#utils';
 import { DOC2X_API_CODE_SUCCESS } from '#doc2x/constants';
 import { HTTP_METHOD_PUT, type HttpMethod } from '#doc2x/http';
 
+type JsonObject = Record<string, unknown>;
+type Doc2xEnvelope = { code?: unknown; msg?: unknown; data?: unknown };
+
+function asJsonObject(v: unknown): JsonObject | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  return v as JsonObject;
+}
+
 async function fetchJson(url: string, init: RequestInit, timeoutMs: number) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { ...init, signal: ctrl.signal });
-    const text = await res.text();
-    let json: any;
     try {
-      json = text ? JSON.parse(text) : null;
-    } catch {
-      json = null;
+      const res = await fetch(url, { ...init, signal: ctrl.signal });
+      const text = await res.text();
+      let json: JsonObject | null;
+      try {
+        json = text ? asJsonObject(JSON.parse(text)) : null;
+      } catch {
+        json = null;
+      }
+      return { res, text, json };
+    } catch (e) {
+      throw coerceToolError(e, {
+        defaultCode: TOOL_ERROR_CODE_INTERNAL_ERROR,
+        defaultRetryable: true,
+        defaultMessage: 'Doc2x request failed',
+      });
     }
-    return { res, text, json };
   } finally {
     clearTimeout(t);
   }
@@ -53,7 +70,7 @@ export function doc2xHeaders(extra?: Record<string, string>) {
     throw new ToolError({
       code: TOOL_ERROR_CODE_MISSING_API_KEY,
       message:
-        'Doc2x API key is not configured (set INLINE_DOC2X_API_KEY in src/config.ts or provide DOC2X_API_KEY env).',
+        'Doc2x API key is not configured (set INLINE_DOC2X_API_KEY in src/config/index.ts or provide DOC2X_API_KEY env).',
       retryable: false,
     });
   }
@@ -65,16 +82,16 @@ export function doc2xHeaders(extra?: Record<string, string>) {
 
 type Doc2xRequestOpts = {
   query?: Record<string, string>;
-  body?: any;
+  body?: unknown;
   raw_body?: BodyInit;
   headers?: Record<string, string>;
 };
 
-export async function doc2xRequestJson(
+export async function doc2xRequestJson<TData = Record<string, unknown>>(
   method: HttpMethod,
   pathname: string,
   opts?: Doc2xRequestOpts,
-) {
+): Promise<TData> {
   const url = new URL(CONFIG.baseUrl + pathname);
   if (opts?.query) {
     for (const [k, v] of Object.entries(opts.query)) url.searchParams.set(k, v);
@@ -90,7 +107,18 @@ export async function doc2xRequestJson(
 
   let attempt = 0;
   while (true) {
-    const { res, json, text } = await fetchJson(url.toString(), init, CONFIG.httpTimeoutMs);
+    let res: Response;
+    let json: JsonObject | null;
+    let text: string;
+    try {
+      ({ res, json, text } = await fetchJson(url.toString(), init, CONFIG.httpTimeoutMs));
+    } catch (e) {
+      if (isRetryableError(e)) {
+        await sleep(jitteredBackoffMs(attempt++));
+        continue;
+      }
+      throw e;
+    }
     if (res.status === 429) {
       await sleep(jitteredBackoffMs(attempt++));
       continue;
@@ -110,16 +138,18 @@ export async function doc2xRequestJson(
         retryable: false,
       });
     }
-    if (json.code !== DOC2X_API_CODE_SUCCESS) {
-      const code = String(json.code || 'doc2x_error');
+    const envelope = json as Doc2xEnvelope;
+    const apiCode = String(envelope.code || '');
+    if (apiCode !== DOC2X_API_CODE_SUCCESS) {
+      const code = String(envelope.code || 'doc2x_error');
       const retryable = isRetryableDoc2xBusinessCode(code);
       if (retryable) {
         await sleep(jitteredBackoffMs(attempt++));
         continue;
       }
-      throw new ToolError({ code, message: String(json.msg || 'Doc2x error'), retryable });
+      throw new ToolError({ code, message: String(envelope.msg || 'Doc2x error'), retryable });
     }
-    return json.data;
+    return envelope.data as TData;
   }
 }
 
@@ -130,16 +160,26 @@ export async function putToSignedUrl(signedUrl: string, filePath: string) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), CONFIG.httpTimeoutMs);
   try {
-    const res = await fetch(signedUrl, {
-      method: HTTP_METHOD_PUT,
-      body: body as any,
-      duplex: 'half' as any,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Length': String(stat.size),
-      },
-      signal: ctrl.signal,
-    } as any);
+    let res: Response;
+    try {
+      const putInit: RequestInit & { duplex: 'half' } = {
+        method: HTTP_METHOD_PUT,
+        body: body as unknown as BodyInit,
+        duplex: 'half',
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Length': String(stat.size),
+        },
+        signal: ctrl.signal,
+      };
+      res = await fetch(signedUrl, putInit);
+    } catch (e) {
+      throw coerceToolError(e, {
+        defaultCode: TOOL_ERROR_CODE_INTERNAL_ERROR,
+        defaultRetryable: true,
+        defaultMessage: 'PUT to signed url failed',
+      });
+    }
     if (!res.ok) {
       const txt = await res.text().catch(() => '');
       throw new ToolError({

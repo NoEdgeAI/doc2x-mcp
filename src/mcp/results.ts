@@ -1,4 +1,4 @@
-import { ToolError } from '#errors';
+import { coerceToolError } from '#errors';
 import { TOOL_ERROR_CODE_INTERNAL_ERROR } from '#errorCodes';
 
 export function asTextResult(text: string) {
@@ -14,16 +14,11 @@ export function asJsonResult(obj: unknown) {
 }
 
 export function asErrorResult(e: unknown) {
-  const payload =
-    e instanceof ToolError
-      ? e.toPayload()
-      : {
-          error: {
-            code: TOOL_ERROR_CODE_INTERNAL_ERROR,
-            message: String((e as any)?.message || e),
-            retryable: false,
-          },
-        };
+  const payload = coerceToolError(e, {
+    defaultCode: TOOL_ERROR_CODE_INTERNAL_ERROR,
+    defaultRetryable: false,
+    defaultMessage: 'Unhandled error',
+  }).toPayload();
   return {
     isError: true,
     content: [{ type: 'text' as const, text: JSON.stringify(payload, null, 2) }],

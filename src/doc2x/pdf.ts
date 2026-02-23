@@ -4,7 +4,7 @@ import path from 'node:path';
 import _ from 'lodash';
 
 import { CONFIG } from '#config';
-import { ToolError } from '#errors';
+import { ToolError, isRetryableError } from '#errors';
 import {
   TOOL_ERROR_CODE_INVALID_ARGUMENT,
   TOOL_ERROR_CODE_PARSE_FAILED,
@@ -18,15 +18,17 @@ import { v2 } from '#doc2x/paths';
 
 export const PARSE_PDF_MODELS = ['v3-2026'] as const;
 export type ParsePdfModel = (typeof PARSE_PDF_MODELS)[number];
+type Doc2xPageResult = { page_idx?: unknown; md?: unknown };
+type Doc2xParseResult = { pages?: Doc2xPageResult[] };
 
 function mergePagesToTextWithLimit(
-  result: any,
+  result: unknown,
   joinWith: string,
   limits?: { maxOutputChars?: number; maxOutputPages?: number },
 ): { text: string; truncated: boolean; returnedPages: number; totalPages: number } {
-  const pages = _.sortBy(_.isArray(result?.pages) ? result.pages : [], (p) =>
-    Number((p as any)?.page_idx ?? 0),
-  );
+  const parsed = (result as Doc2xParseResult | null) ?? null;
+  const sourcePages = _.isArray(parsed?.pages) ? parsed.pages : [];
+  const pages = _.sortBy(sourcePages, (p) => Number(p?.page_idx ?? 0));
 
   const maxPages =
     (limits?.maxOutputPages ?? 0) > 0 ? Number(limits?.maxOutputPages) : Number.POSITIVE_INFINITY;
@@ -39,7 +41,7 @@ function mergePagesToTextWithLimit(
   let truncated = false;
 
   for (let i = 0; i < pages.length && returnedPages < maxPages; i++) {
-    const pageMd = _.toString((pages[i] as any)?.md ?? '');
+    const pageMd = _.toString(pages[i]?.md ?? '');
     const prefix = returnedPages === 0 ? '' : joinWith;
 
     if (used >= maxChars) {
@@ -90,7 +92,7 @@ async function preuploadPdfWithRetry(model?: ParsePdfModel): Promise<{ uid: stri
       const data = await doc2xRequestJson(HTTP_METHOD_POST, v2('/parse/preupload'), payload);
       return { uid: String(data.uid), url: String(data.url) };
     } catch (e) {
-      if (e instanceof ToolError && e.retryable) {
+      if (isRetryableError(e)) {
         await sleep(jitteredBackoffMs(attempt++));
         continue;
       }
@@ -116,7 +118,8 @@ export async function parsePdfSubmit(
   let data = await preuploadPdfWithRetry(model);
   try {
     await putToSignedUrl(String(data.url), p);
-  } catch {
+  } catch (e) {
+    if (!isRetryableError(e)) throw e;
     data = await preuploadPdfWithRetry(model);
     await putToSignedUrl(String(data.url), p);
   }
@@ -173,7 +176,7 @@ export async function parsePdfWaitTextByUid(args: {
       st = await parsePdfStatus(uid);
       attempt = 0;
     } catch (e) {
-      if (e instanceof ToolError && e.retryable) {
+      if (isRetryableError(e)) {
         await sleep(jitteredBackoffMs(attempt++));
         continue;
       }

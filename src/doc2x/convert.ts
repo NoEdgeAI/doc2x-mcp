@@ -1,7 +1,7 @@
 import path from 'node:path';
 
 import { CONFIG } from '#config';
-import { ToolError } from '#errors';
+import { ToolError, isRetryableError } from '#errors';
 import { TOOL_ERROR_CODE_CONVERT_FAILED, TOOL_ERROR_CODE_TIMEOUT } from '#errorCodes';
 import { jitteredBackoffMs, sleep } from '#utils';
 import { doc2xRequestJson, normalizeUrl } from '#doc2x/client';
@@ -44,7 +44,14 @@ export async function convertExportSubmit(args: {
   merge_cross_page_forms?: boolean;
   filename_mode?: ExportFilenameMode;
 }) {
-  const body: any = {
+  const body: {
+    uid: string;
+    to: 'md' | 'tex' | 'docx';
+    formula_mode: 'normal' | 'dollar';
+    formula_level?: ConvertFormulaLevel;
+    merge_cross_page_forms?: boolean;
+    filename?: string;
+  } = {
     uid: args.uid,
     to: args.to,
     formula_mode: args.formula_mode,
@@ -92,7 +99,7 @@ export async function convertExportWaitByUid(args: {
       st = await convertExportResult(args.uid);
       attempt = 0;
     } catch (e) {
-      if (e instanceof ToolError && e.retryable) {
+      if (isRetryableError(e)) {
         await sleep(jitteredBackoffMs(attempt++));
         continue;
       }

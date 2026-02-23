@@ -6,7 +6,7 @@
   "engines": {
     "node": ">=18"
   },
-  "packageManager": "pnpm@10.26.2",
+  "packageManager": "pnpm@10.30.1",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -31,12 +31,16 @@
     "skill:install:ps": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/install-skill.ps1",
     "skill:install:winps": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-skill-winps.ps1",
     "start": "node dist/index.js",
+    "test:unit": "npm run build && node --test test/unit/registerToolsShared.test.js",
+    "test:e2e": "npm run build && node --test test/e2e/mcpServer.e2e.test.js",
+    "test": "npm run test:unit && npm run test:e2e",
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.26.0",
     "@types/lodash": "^4.17.23",
     "lodash": "4.17.23",
+    "lru-cache": "^11.2.6",
     "zod": "latest"
   },
   "devDependencies": {
@@ -52,12 +56,30 @@
     "url": "git+https://github.com/NoEdgeAI/doc2x-mcp.git"
   },
   "imports": {
-    "#config": "./dist/config.js",
-    "#errors": "./dist/errors.js",
-    "#errorCodes": "./dist/errorCodes.js",
-    "#utils": "./dist/utils.js",
-    "#doc2x/*": "./dist/doc2x/*.js",
-    "#mcp/*": "./dist/mcp/*.js"
+    "#config": {
+      "types": "./src/config/index.ts",
+      "default": "./dist/config/index.js"
+    },
+    "#errors": {
+      "types": "./src/errors/error.ts",
+      "default": "./dist/errors/error.js"
+    },
+    "#errorCodes": {
+      "types": "./src/errors/errorCodes.ts",
+      "default": "./dist/errors/errorCodes.js"
+    },
+    "#utils": {
+      "types": "./src/shared/utils.ts",
+      "default": "./dist/shared/utils.js"
+    },
+    "#doc2x/*": {
+      "types": "./src/doc2x/*.ts",
+      "default": "./dist/doc2x/*.js"
+    },
+    "#mcp/*": {
+      "types": "./src/mcp/*.ts",
+      "default": "./dist/mcp/*.js"
+    }
   },
   "keywords": [
     "doc2x",

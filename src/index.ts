@@ -28,9 +28,14 @@ async function main() {
   await server.connect(transport);
 }
 
-main().catch((e) => {
+function formatFatalError(e: unknown): string {
+  if (e instanceof Error) return e.stack || `${e.name}: ${e.message}`;
+  return String(e);
+}
+
+main().catch((e: unknown) => {
   process.stderr.write(
-    JSON.stringify({ ts: new Date().toISOString(), err: String((e as any)?.stack || e) }) + os.EOL,
+    JSON.stringify({ ts: new Date().toISOString(), err: formatFatalError(e) }) + os.EOL,
   );
   process.exitCode = 1;
 });

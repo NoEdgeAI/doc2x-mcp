@@ -2,11 +2,13 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { Readable } from 'node:stream';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 
 import { CONFIG, isHostAllowedByAllowlist, parseDownloadUrlAllowlist } from '#config';
-import { ToolError } from '#errors';
+import { ToolError, coerceToolError } from '#errors';
 import {
   TOOL_ERROR_CODE_EMPTY_BODY,
+  TOOL_ERROR_CODE_INTERNAL_ERROR,
   TOOL_ERROR_CODE_INVALID_URL,
   TOOL_ERROR_CODE_UNSAFE_URL,
   httpErrorCode,
@@ -48,7 +50,17 @@ export async function downloadUrlToFile(args: { url: string; output_path: string
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), CONFIG.httpTimeoutMs);
   try {
-    const res = await fetch(normalizedUrl, { method: HTTP_METHOD_GET, signal: ctrl.signal });
+    let res: Response;
+    try {
+      res = await fetch(normalizedUrl, { method: HTTP_METHOD_GET, signal: ctrl.signal });
+    } catch (e) {
+      throw coerceToolError(e, {
+        defaultCode: TOOL_ERROR_CODE_INTERNAL_ERROR,
+        defaultRetryable: true,
+        defaultMessage: 'download failed',
+        details: { url: parsed.hostname },
+      });
+    }
     if (!res.ok) {
       throw new ToolError({
         code: httpErrorCode(res.status),
@@ -64,13 +76,22 @@ export async function downloadUrlToFile(args: { url: string; output_path: string
       });
 
     const file = fs.createWriteStream(outPath);
-    await new Promise<void>((resolve, reject) => {
-      file.on('error', reject);
-      file.on('finish', resolve);
-      Readable.fromWeb(res.body as any)
-        .on('error', reject)
-        .pipe(file);
-    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        file.on('error', reject);
+        file.on('finish', resolve);
+        Readable.fromWeb(res.body as unknown as NodeReadableStream<Uint8Array>)
+          .on('error', reject)
+          .pipe(file);
+      });
+    } catch (e) {
+      throw coerceToolError(e, {
+        defaultCode: TOOL_ERROR_CODE_INTERNAL_ERROR,
+        defaultRetryable: false,
+        defaultMessage: 'download failed while writing file',
+        details: { output_path: outPath },
+      });
+    }
     const stat = await fsp.stat(outPath);
     return { output_path: outPath, bytes_written: stat.size };
   } finally {
