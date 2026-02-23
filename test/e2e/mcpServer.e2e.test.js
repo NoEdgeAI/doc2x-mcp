@@ -56,8 +56,8 @@ test('stdio e2e: list tools and basic error/result paths', async (t) => {
   assert.notEqual(debug.isError, true);
   const debugPayload = JSON.parse(firstText(debug));
   assert.equal(typeof debugPayload.baseUrl, 'string');
-  assert.equal(typeof debugPayload.cacheMaxEntries, 'number');
-  assert.equal(typeof debugPayload.cacheTtlMs, 'number');
+  assert.equal(typeof debugPayload.pollIntervalMs, 'number');
+  assert.equal(typeof debugPayload.httpTimeoutMs, 'number');
 
   const pdfWait = await client.callTool({ name: 'doc2x_parse_pdf_wait_text', arguments: {} });
   assert.equal(pdfWait.isError, true);

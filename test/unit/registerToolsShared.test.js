@@ -1,12 +1,9 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import test from 'node:test';
-import { setTimeout as sleep } from 'node:timers/promises';
 
 import { TOOL_ERROR_CODE_INVALID_ARGUMENT } from '../../dist/errors/errorCodes.js';
 import {
-  BoundedTtlMap,
-  BoundedTtlSet,
   doc2xDownloadUrlSchema,
   imagePathSchema,
   makeConvertSubmitKey,
@@ -21,32 +18,6 @@ function parseErrorPayload(result) {
   const text = result.content?.[0]?.text ?? '';
   return JSON.parse(text);
 }
-
-test('BoundedTtlMap enforces max entries in LRU order', () => {
-  const m = new BoundedTtlMap(2, 60_000);
-  m.set('a', 1);
-  m.set('b', 2);
-  assert.equal(m.get('a'), 1);
-  m.set('c', 3);
-  assert.equal(m.get('a'), 1);
-  assert.equal(m.get('b'), undefined);
-  assert.equal(m.get('c'), 3);
-});
-
-test('BoundedTtlMap expires entries by ttl', async () => {
-  const m = new BoundedTtlMap(2, 20);
-  m.set('a', 1);
-  await sleep(40);
-  assert.equal(m.get('a'), undefined);
-});
-
-test('BoundedTtlSet enforces ttl and presence', async () => {
-  const s = new BoundedTtlSet(2, 20);
-  s.add('x');
-  assert.equal(s.has('x'), true);
-  await sleep(40);
-  assert.equal(s.has('x'), false);
-});
 
 test('makeConvertSubmitKey is stable for omitted optional fields', () => {
   const a = makeConvertSubmitKey({
