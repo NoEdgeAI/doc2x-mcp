@@ -4,12 +4,18 @@ import test from 'node:test';
 
 import { TOOL_ERROR_CODE_INVALID_ARGUMENT } from '../../dist/errors/errorCodes.js';
 import {
+  createRegisterToolsContext,
   doc2xDownloadUrlSchema,
+  fileSig,
+  getSubmittedUidFromCache,
+  makePdfUidCacheKey,
   imagePathSchema,
   makeConvertSubmitKey,
   missingEitherFieldError,
   outputPathSchema,
   pdfPathSchema,
+  setFailedUidCache,
+  setSubmittedUidCache,
   withToolErrorHandling,
 } from '../../dist/mcp/registerToolsShared.js';
 
@@ -71,4 +77,24 @@ test('download URL schema only allows http/https', () => {
   assert.equal(doc2xDownloadUrlSchema.safeParse('https://example.com/a?b=1').success, true);
   assert.equal(doc2xDownloadUrlSchema.safeParse('http://example.com').success, true);
   assert.equal(doc2xDownloadUrlSchema.safeParse('ftp://example.com/file').success, false);
+});
+
+test('pdf uid cache hits for same signature from test/pdf/test.pdf', async () => {
+  const ctx = createRegisterToolsContext();
+  const pdfPath = path.resolve(process.cwd(), 'test/pdf/test.pdf');
+  const sig1 = await fileSig(pdfPath);
+  const key = makePdfUidCacheKey(sig1.absPath);
+
+  assert.equal(getSubmittedUidFromCache(ctx, { kind: 'pdf', key, sig: sig1 }), '');
+
+  setSubmittedUidCache(ctx, { kind: 'pdf', key, sig: sig1, uid: 'uid-1' });
+  const sig2 = await fileSig(pdfPath);
+  assert.equal(getSubmittedUidFromCache(ctx, { kind: 'pdf', key, sig: sig2 }), 'uid-1');
+
+  setFailedUidCache(ctx, { kind: 'pdf', key, sig: sig2, uid: 'uid-1' });
+  assert.equal(getSubmittedUidFromCache(ctx, { kind: 'pdf', key, sig: sig2 }), '');
+
+  setSubmittedUidCache(ctx, { kind: 'pdf', key, sig: sig2, uid: 'uid-2' });
+  const changedSig = { ...sig2, md5: '00000000000000000000000000000000' };
+  assert.equal(getSubmittedUidFromCache(ctx, { kind: 'pdf', key, sig: changedSig }), '');
 });
