@@ -1,7 +1,7 @@
 import path from 'node:path';
 
 import { CONFIG } from '#config';
-import { ToolError } from '#errors';
+import { ToolError, isRetryableError } from '#errors';
 import { TOOL_ERROR_CODE_CONVERT_FAILED, TOOL_ERROR_CODE_TIMEOUT } from '#errorCodes';
 import { jitteredBackoffMs, sleep } from '#utils';
 import { doc2xRequestJson, normalizeUrl } from '#doc2x/client';
@@ -10,6 +10,8 @@ import { HTTP_METHOD_GET, HTTP_METHOD_POST } from '#doc2x/http';
 import { v2 } from '#doc2x/paths';
 
 type ExportFilenameMode = 'auto' | 'raw';
+export const CONVERT_FORMULA_LEVELS = [0, 1, 2] as const;
+export type ConvertFormulaLevel = (typeof CONVERT_FORMULA_LEVELS)[number];
 
 function normalizeExportFilename(
   filename: string,
@@ -37,15 +39,24 @@ export async function convertExportSubmit(args: {
   uid: string;
   to: 'md' | 'tex' | 'docx';
   formula_mode: 'normal' | 'dollar';
+  formula_level?: ConvertFormulaLevel;
   filename?: string;
   merge_cross_page_forms?: boolean;
   filename_mode?: ExportFilenameMode;
 }) {
-  const body: any = {
+  const body: {
+    uid: string;
+    to: 'md' | 'tex' | 'docx';
+    formula_mode: 'normal' | 'dollar';
+    formula_level?: ConvertFormulaLevel;
+    merge_cross_page_forms?: boolean;
+    filename?: string;
+  } = {
     uid: args.uid,
     to: args.to,
     formula_mode: args.formula_mode,
   };
+  if (args.formula_level != null) body.formula_level = args.formula_level;
   if (args.merge_cross_page_forms != null)
     body.merge_cross_page_forms = args.merge_cross_page_forms;
   if (args.filename != null)
@@ -88,7 +99,7 @@ export async function convertExportWaitByUid(args: {
       st = await convertExportResult(args.uid);
       attempt = 0;
     } catch (e) {
-      if (e instanceof ToolError && e.retryable) {
+      if (isRetryableError(e)) {
         await sleep(jitteredBackoffMs(attempt++));
         continue;
       }

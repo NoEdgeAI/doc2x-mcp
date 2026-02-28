@@ -4,4 +4,5 @@ dist/
 .npm-cache
 .idea
 .env
-
+.pnpm-store
+.tmp

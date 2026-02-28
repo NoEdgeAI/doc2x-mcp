@@ -5,7 +5,6 @@ const INLINE_DOC2X_API_KEY = '';
 function parseDoc2xApiKey(raw: string): string {
   const v = String(raw).trim();
   if (!v) return '';
-  // Common misconfig: Alma/Codex passes literal "${DOC2X_API_KEY}" without expansion.
   if (v.includes('${') && v.includes('}')) return '';
   const bearerPrefix = /^bearer\s+/i;
   if (bearerPrefix.test(v)) return v.replace(bearerPrefix, '').trim();

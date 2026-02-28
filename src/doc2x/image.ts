@@ -2,7 +2,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 
 import { CONFIG } from '#config';
-import { ToolError } from '#errors';
+import { ToolError, isRetryableError } from '#errors';
 import {
   TOOL_ERROR_CODE_FILE_TOO_LARGE,
   TOOL_ERROR_CODE_INVALID_ARGUMENT,
@@ -60,6 +60,7 @@ export async function parseImageLayoutWaitTextByUid(args: {
   poll_interval_ms?: number;
   max_wait_ms?: number;
 }) {
+  type ImageLayoutResult = { pages?: Array<{ md?: unknown }> };
   const pollInterval = args.poll_interval_ms ?? CONFIG.pollIntervalMs;
   const maxWait = args.max_wait_ms ?? Math.min(CONFIG.maxWaitMs, 300_000);
   const uid = String(args.uid || '').trim();
@@ -85,14 +86,15 @@ export async function parseImageLayoutWaitTextByUid(args: {
       st = await parseImageLayoutStatus(uid);
       attempt = 0;
     } catch (e) {
-      if (e instanceof ToolError && e.retryable) {
+      if (isRetryableError(e)) {
         await sleep(jitteredBackoffMs(attempt++));
         continue;
       }
       throw e;
     }
     if (st.status === DOC2X_TASK_STATUS_SUCCESS) {
-      const md = String(st?.result?.pages?.[0]?.md || '');
+      const result = (st.result as ImageLayoutResult | null) ?? null;
+      const md = String(result?.pages?.[0]?.md || '');
       return { uid, status: DOC2X_TASK_STATUS_SUCCESS, text: md };
     }
     if (st.status === DOC2X_TASK_STATUS_FAILED)
