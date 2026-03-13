@@ -263,6 +263,12 @@ export const outputPathSchema = absolutePathSchema.describe(
   'Absolute path for the output file. The file will be overwritten if it exists.',
 );
 
+export const jsonOutputPathSchema = absolutePathSchema
+  .refine((v) => v.toLowerCase().endsWith('.json'), {
+    message: "Path must end with '.json'.",
+  })
+  .describe('Absolute path for the output JSON file. The file will be overwritten if it exists.');
+
 export const doc2xDownloadUrlSchema = z
   .string()
   .trim()

@@ -8,6 +8,7 @@ import {
   doc2xDownloadUrlSchema,
   fileSig,
   getSubmittedUidFromCache,
+  jsonOutputPathSchema,
   makePdfUidCacheKey,
   imagePathSchema,
   makeConvertSubmitKey,
@@ -60,6 +61,7 @@ test('path schemas enforce absolute and extension constraints', () => {
   const badImage = path.resolve('/tmp/a.gif');
   const relativeOut = 'tmp/out.md';
   const absoluteOut = path.resolve('/tmp/out.md');
+  const absoluteJsonOut = path.resolve('/tmp/out.json');
 
   assert.equal(pdfPathSchema.safeParse(goodPdf).success, true);
   assert.equal(pdfPathSchema.safeParse(badPdf).success, false);
@@ -71,6 +73,8 @@ test('path schemas enforce absolute and extension constraints', () => {
 
   assert.equal(outputPathSchema.safeParse(absoluteOut).success, true);
   assert.equal(outputPathSchema.safeParse(relativeOut).success, false);
+  assert.equal(jsonOutputPathSchema.safeParse(absoluteJsonOut).success, true);
+  assert.equal(jsonOutputPathSchema.safeParse(absoluteOut).success, false);
 });
 
 test('download URL schema only allows http/https', () => {

@@ -50,6 +50,7 @@ test('stdio e2e: list tools and basic error/result paths', async (t) => {
   const toolNames = new Set(tools.tools.map((x) => x.name));
   assert.ok(toolNames.has('doc2x_debug_config'));
   assert.ok(toolNames.has('doc2x_parse_pdf_wait_text'));
+  assert.ok(toolNames.has('doc2x_materialize_pdf_layout_json'));
   assert.ok(toolNames.has('doc2x_parse_image_layout_wait_text'));
 
   const debug = await client.callTool({ name: 'doc2x_debug_config', arguments: {} });
@@ -63,6 +64,14 @@ test('stdio e2e: list tools and basic error/result paths', async (t) => {
   assert.equal(pdfWait.isError, true);
   const pdfWaitPayload = JSON.parse(firstText(pdfWait));
   assert.equal(pdfWaitPayload.error.code, TOOL_ERROR_CODE_INVALID_ARGUMENT);
+
+  const pdfLayout = await client.callTool({
+    name: 'doc2x_materialize_pdf_layout_json',
+    arguments: { output_path: path.resolve(cwd, 'test/out/layout.json') },
+  });
+  assert.equal(pdfLayout.isError, true);
+  const pdfLayoutPayload = JSON.parse(firstText(pdfLayout));
+  assert.equal(pdfLayoutPayload.error.code, TOOL_ERROR_CODE_INVALID_ARGUMENT);
 
   const imageWait = await client.callTool({ name: 'doc2x_parse_image_layout_wait_text', arguments: {} });
   assert.equal(imageWait.isError, true);

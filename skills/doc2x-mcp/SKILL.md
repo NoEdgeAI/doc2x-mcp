@@ -1,173 +1,116 @@
 ---
 name: doc2x-mcp
-description: 使用 Doc2x MCP 工具完成文档解析与转换：对 PDF/扫描件/图片做 OCR 与版面解析，抽取文本/表格，导出为 Markdown/LaTeX(TeX)/DOCX 并下载落盘（submit/status/wait/export/download）。当用户提到 PDF/pdfs、scanned PDF、OCR、image-to-text、extract text/tables、表格抽取、文档转换/convert、导出/export、Markdown、LaTeX/TeX、DOCX、doc2x、doc2x-mcp、MCP 时使用。
+description: 使用 Doc2x MCP 工具处理 PDF、扫描件和图片：提交解析、查询状态、等待文本、导出 Markdown/LaTeX/DOCX、下载落盘，以及将 PDF v3 layout 结果写为本地 JSON。用户提到 PDF、OCR、scan/scanned PDF、image-to-text、extract text/tables、表格抽取、layout、Markdown、LaTeX/TeX、DOCX、doc2x、doc2x-mcp、MCP、figure/table crop、v3 JSON 时使用。
 ---
 
-# Doc2x MCP Tool-Use Skill (for LLM)
+# Doc2x MCP
 
-## 你要做什么
+## 目的
 
-你是一个会调用 MCP tools 的助手。凡是涉及 PDF/图片的“解析/抽取/导出/下载”，必须通过 `doc2x-mcp` tools 执行真实操作：
+凡是“解析 PDF/图片、抽取文本/表格、导出文档、下载结果、获取 v3 layout JSON”的请求，都应通过 `doc2x-mcp` tools 执行真实操作，不要臆造 `uid`、`url`、文件内容或导出结果。
 
-- 不要臆测/伪造 `uid`、`url`、文件内容或导出结果
-- 不要跳过工具步骤直接输出“看起来合理”的内容
+## 必须遵守
 
-## 全局约束（必须遵守）
+1. 所有文件路径都用绝对路径：`pdf_path`、`image_path`、`output_path`、`output_dir`。
+2. 不要伪造下载 URL；只能使用 `doc2x_convert_export_*` 返回的 `url`。
+3. 同一个 `uid` 的同一组导出参数不要并发重复提交。
+4. 同一个 `uid` 做多档导出对比时，必须按“导出成功 -> 立即下载 -> 再导出下一档”执行，避免结果覆盖。
+5. 不要回显 `DOC2X_API_KEY`；排错只用 `doc2x_debug_config` 的摘要信息。
+6. `model` 只用于 PDF 解析提交；`formula_level` 只用于导出，且仅在源解析为 `v3-2026` 时有效。
+7. `doc2x_parse_pdf_wait_text` 只适合预览或摘要；需要完整结果时优先导出文件。
+8. 需要 PDF v3 block/layout 坐标时，不要从文本结果推断，直接使用 `doc2x_materialize_pdf_layout_json`。
 
-1. 路径必须是绝对路径  
-   `pdf_path` / `image_path` / `output_path` / `output_dir` 都应使用绝对路径；相对路径可能会被 server 以意外的 cwd 解析导致失败。
+## 参数边界
 
-2. 扩展名约束  
-   `doc2x_parse_pdf_submit.pdf_path` 必须以 `.pdf` 结尾；图片解析使用 `png/jpg`。
+- PDF 解析：`doc2x_parse_pdf_submit` 和 `doc2x_parse_pdf_wait_text(pdf_path 分支)` 可传 `model: "v3-2026"`；不传默认 `v2`。
+- PDF layout JSON：`doc2x_materialize_pdf_layout_json` 在 `pdf_path` 分支默认使用 `v3-2026`，并要求返回结果包含 `pages[].layout`。
+- 导出：`formula_mode` 建议总是显式传入。
+- `formula_level` 必须传数字 `0 | 1 | 2`，不要传字符串。
+- 图片解析路径只接受 `png/jpg/jpeg`；PDF 路径必须以 `.pdf` 结尾；layout JSON 输出路径应以 `.json` 结尾。
 
-3. 不要并发重复提交导出  
-   同一个 `uid` 对同一种导出配置（`to + formula_mode + formula_level (+ filename + filename_mode + merge_cross_page_forms...)`）不要并行重复 submit。  
-   补充：同一 `uid + to` 的导出结果可能会被后一次覆盖；做“多档对比”（如 `formula_level=0/1/2`）时，必须按 **导出成功 → 立即下载落盘 → 再导出下一档** 的顺序执行。
+## 按目标选 Tool
 
-4. 不要泄露密钥  
-   永远不要回显/记录 `DOC2X_API_KEY`。排错只用 `doc2x_debug_config` 的 `apiKeyLen/apiKeyPrefix/apiKeySource`。
+- 提交 PDF 解析：`doc2x_parse_pdf_submit`
+- 查看 PDF 状态：`doc2x_parse_pdf_status`
+- 取 PDF 文本预览：`doc2x_parse_pdf_wait_text`
+- 导出 PDF 为 `md/tex/docx`：`doc2x_convert_export_wait`
+- 下载导出文件：`doc2x_download_url_to_file`
+- 落盘 PDF v3 layout JSON：`doc2x_materialize_pdf_layout_json`
+- 图片版面解析原始结果：`doc2x_parse_image_layout_sync`
+- 图片版面解析并等待首屏 Markdown：`doc2x_parse_image_layout_submit` -> `doc2x_parse_image_layout_wait_text`
+- 落盘 `convert_zip`：`doc2x_materialize_convert_zip`
+- 配置排错：`doc2x_debug_config`
 
-5. 不要伪造下载 URL  
-   下载必须使用 `doc2x_convert_export_*` 返回的 `url`；不要自己拼接。
+## 标准流程
 
-6. 参数生效边界  
-   `model` 仅用于 PDF 解析提交（默认 `v2`，可选 `v3-2026`）；`formula_level` 仅用于导出（`doc2x_convert_export_*`），并且只在源解析任务使用 `v3-2026` 时生效（`v2` 下无效）。
+### 1. PDF -> 完整文件
 
-## 关键参数语义（避免误用）
+当用户要完整 Markdown / TeX / DOCX，本流程优先：
 
-- `doc2x_parse_pdf_submit` / `doc2x_parse_pdf_wait_text(pdf_path 提交分支)`  
-  - 可选 `model: "v3-2026"`；不传则默认 `v2`。
-- `doc2x_convert_export_submit` / `doc2x_convert_export_wait`  
-  - `formula_mode`：`"normal"` 或 `"dollar"`（关键参数，建议总是显式传入）。  
-  - `formula_level`：`0 | 1 | 2`（可选，**数字类型**，不要传字符串 `"0"|"1"|"2"`）  
-    - `0`：不退化公式（保留原始 Markdown）
-    - `1`：行内公式退化为普通文本（`\(...\)`、`$...$`）
-    - `2`：行内 + 块级公式全部退化为普通文本（`\(...\)`、`$...$`、`\[...\]`、`$$...$$`）
+1. `doc2x_parse_pdf_submit({ pdf_path, model? })`
+2. 轮询 `doc2x_parse_pdf_status({ uid })` 直到成功
+3. `doc2x_convert_export_wait({ uid, to, formula_mode, formula_level?, filename?, filename_mode? })`
+4. `doc2x_download_url_to_file({ url, output_path })`
 
-## Tool 选择（按用户目标）
+说明：
 
-- **PDF 解析任务**：`doc2x_parse_pdf_submit` → `doc2x_parse_pdf_status`
-- **少量预览/摘要**：`doc2x_parse_pdf_wait_text`（可能截断；要完整内容请导出文件）
-- **导出文件（md/tex/docx）**：`doc2x_convert_export_submit` → `doc2x_convert_export_wait`（或直接 `doc2x_convert_export_wait` 走兼容模式一键导出）
-- **下载落盘**：`doc2x_download_url_to_file`
-- **图片版面解析**：`doc2x_parse_image_layout_sync` 或 `doc2x_parse_image_layout_submit` → `doc2x_parse_image_layout_wait_text`
-- **解包资源 zip**：`doc2x_materialize_convert_zip`
-- **配置排错**：`doc2x_debug_config`
+- `md/docx` 常用 `formula_mode: "normal"`
+- `tex` 常用 `formula_mode: "dollar"`
+- 需要完整内容时，不要用 `doc2x_parse_pdf_wait_text` 代替导出
 
-## 标准工作流（照做）
+### 2. PDF -> 文本预览
 
-### 工作流 A：批量 PDF → 导出文件（MD/TEX/DOCX，高效并行版）
+仅在用户要快速预览、摘要、少量文本时使用：
 
-适用于“多个 PDF 批量导出并落盘（.md / .tex / .docx）”。核心原则：
+- `doc2x_parse_pdf_wait_text({ pdf_path | uid, max_output_chars?, max_output_pages?, model? })`
 
-- `doc2x_parse_pdf_submit` 可并行（批量提交）
-- `doc2x_parse_pdf_status` 可并行（批量轮询）
-- **流水线式并行**：某个 `uid` 一旦解析成功，立刻开始该 `uid` 的导出+下载（不必等所有 PDF 都解析完）
-- 不同 `uid` 的导出与下载可并行
-- **同一个 `uid` 的同一种导出配置（`to + formula_mode + formula_level (+ filename + filename_mode + merge_cross_page_forms...)`）不要并行重复提交**
-- 同一个 `uid` 若要导出多种格式（例如 md + docx + tex），建议**按格式串行**，但不同 `uid` 仍可并行
+若出现截断提示，应切回“PDF -> 完整文件”流程。
 
-**批量提交解析任务（并行）**
+### 3. PDF -> v3 layout JSON
 
-- 对每个 `pdf_path` 调用：`doc2x_parse_pdf_submit({ pdf_path, model? })` → `{ uid }`
+当用户要 figure/table 坐标、block bbox、layout blocks、后续裁剪脚本输入时使用：
 
-**等待解析完成（并行）**
+- 优先：`doc2x_materialize_pdf_layout_json({ uid | pdf_path, output_path, model? })`
 
-- 对每个 `uid` 轮询：`doc2x_parse_pdf_status({ uid })` 直到 `status="success"`
-- 若 `status="failed"`：汇报 `detail`，该文件停止后续步骤
+要向用户说明 `layout` 的用途：
 
-**导出目标格式（并行，按 uid）**
+- `Markdown/text` 适合阅读正文；`layout` 适合程序继续处理页面结构
+- `layout.blocks[].bbox` 可用于 figure/table 裁剪、区域截图、框选高亮、可视化调试
+- `layout.blocks[].type` 可用于区分标题、正文、表格、图片等块，做结构化抽取
+- `layout` 适合作为后续脚本输入，例如 figure/table crop、block 对齐、版面分析
+- 如果用户只想“看内容”，优先给 Markdown / DOCX；如果用户要“知道内容在页面哪里”，就用 `layout`
 
-推荐用 `doc2x_convert_export_wait` 走“兼容模式一键导出”（当你提供 `formula_mode` 且本进程未提交过该导出时，会自动 submit 一次，然后 wait），避免你手动拆成 submit+wait：
+行为要求：
 
-- DOCX：`doc2x_convert_export_wait({ uid, to: "docx", formula_mode: "normal", formula_level? })` → `{ status: "success", url }`
-- Markdown：`doc2x_convert_export_wait({ uid, to: "md", formula_mode: "normal", formula_level?, filename?, filename_mode? })` → `{ status: "success", url }`
-- LaTeX：`doc2x_convert_export_wait({ uid, to: "tex", formula_mode: "dollar", formula_level? })` → `{ status: "success", url }`
+- 走 `pdf_path` 分支时，默认使用 `v3-2026`
+- 输出的是原始 parse `result` JSON，而不是精简文本
+- 若返回结果缺少 `pages[].layout`，应视为失败而不是静默降级
 
-（或显式两步：`doc2x_convert_export_submit(...)` → `doc2x_convert_export_wait({ uid, to })`）
+### 4. 图片 -> 版面结果
 
-**补充建议**
+- 直接拿原始结果：`doc2x_parse_image_layout_sync({ image_path })`
+- 等待并取首屏 Markdown：`doc2x_parse_image_layout_submit({ image_path })` -> `doc2x_parse_image_layout_wait_text({ uid })`
+- 结果包含 `convert_zip` 且用户要资源落盘时：`doc2x_materialize_convert_zip({ convert_zip_base64, output_dir })`
 
-- `formula_mode` 是关键参数：建议总是显式传入（`"normal"` / `"dollar"`，按用户偏好选择；常见：`md/docx` 用 `"normal"`、`tex` 用 `"dollar"`）
-- 需要做公式退化时显式传 `formula_level`（`0/1/2`）；若不需要退化，建议显式传 `0`，避免调用端默认值歧义
-- `filename`/`filename_mode` 主要用于 `md/tex`：传不带扩展名的 basename，并配合 `filename_mode: "auto"`（避免 `name.md.md` / `name.tex.tex`）
-- 对同一个 `uid` 做多格式导出时，先确定顺序（例如先 md 再 docx），逐个完成再进行下一个格式
-- 对同一个 `uid` 的同一格式做“多档参数对比”（如 `formula_level`），每一档都要先下载再进行下一档，避免覆盖导致误判
+### 5. 批量 PDF
 
-**批量下载（并行）**
+批量场景采用流水线，不要全串行：
 
-- `doc2x_download_url_to_file({ url, output_path })` → `{ output_path, bytes_written }`
-- `output_path` 必须为绝对路径，且每个文件应唯一（建议用原文件名 + 对应扩展名：`.md` / `.tex` / `.docx`）
+1. 多个 `pdf_path` 可并行 `doc2x_parse_pdf_submit`
+2. 多个 `uid` 可并行 `doc2x_parse_pdf_status`
+3. 某个 `uid` 一旦 parse 成功，立即开始它自己的导出和下载
+4. 不同 `uid` 可并行导出
+5. 同一个 `uid` 的同一种导出配置不要并发
 
-**并发建议**
+## 向用户回报
 
-- 10 个 PDF 以内通常可以直接并行；更多文件建议分批/限流（避免触发超时/限流）
+- 成功时报告：输入文件、`uid`、输出路径、必要时 `bytes_written`
+- 失败时报告：错误码、错误消息、相关 `uid`，并指出哪些文件未受影响
+- 当用户目标是“本地文件”时，优先回报落盘结果，不要只贴长文本
 
-**向用户回报（按文件汇总）**
+## 常见错误处理
 
-- 成功：列出每个输入文件对应的 `output_path` 与 `bytes_written`
-- 失败：列出失败文件与错误原因（包含 `uid` 与 `detail`/错误码），并说明其余文件不受影响
-
-### 工作流 B：PDF → Markdown 文件（推荐）
-
-当用户目标是“拿到完整 Markdown / 落盘”，主链路应当是导出与下载，不要依赖 `doc2x_parse_pdf_wait_text`。
-
-**提交解析任务**
-
-- `doc2x_parse_pdf_submit({ pdf_path, model? })` → `{ uid }`
-
-**等待解析完成**
-
-- 轮询 `doc2x_parse_pdf_status({ uid })` 直到 `status="success"`（失败则带 `detail` 汇报）
-
-**导出 Markdown**
-
-- `doc2x_convert_export_wait({ uid, to: "md", formula_mode: "normal", formula_level?, filename?, filename_mode? })` → `{ status: "success", url }`
-
-**下载落盘**
-
-- `doc2x_download_url_to_file({ url, output_path })` → `{ output_path, bytes_written }`
-
-**向用户回报**
-
-- 回复用户：保存路径、文件大小、`uid`（必要时附上 `url`）
-
-### 工作流 C：PDF → 文本预览（可控长度）
-
-当用户只需要“摘要/少量预览”时才用：
-
-- `doc2x_parse_pdf_wait_text({ pdf_path | uid, max_output_chars?, max_output_pages? })`
-
-如果返回包含截断提示（`[doc2x-mcp] Output truncated ...`），应切换到“工作流 B”导出 md 获取完整内容。
-
-### 工作流 D：PDF 导出格式（MD / TEX / DOCX）
-
-- Markdown：`to="md"`（完整 Markdown 导出优先参考“工作流 B”）
-- LaTeX：`to="tex"`
-- Word：`to="docx"`
-- 调用链同“工作流 A / B”（先解析 → 再导出 → 再下载），按目标格式调整 `to`（并按需设置 `formula_mode/formula_level/filename`）
-- 注意：`doc2x_convert_export_submit.formula_mode` 必填（`"normal"` 或 `"dollar"`）；`formula_level` 可选（`0/1/2`）
-- 若需要对比不同 `formula_level`，请按顺序执行并在每次导出成功后立即下载，再进行下一档，避免后一次结果覆盖前一次。
-
-### 工作流 E：图片 → Markdown（版面解析）
-
-- 只要结果（同步）：`doc2x_parse_image_layout_sync({ image_path })`（返回原始 JSON，可能包含 `convert_zip`）
-- 要首屏 markdown（异步）：`doc2x_parse_image_layout_submit({ image_path })` → `doc2x_parse_image_layout_wait_text({ uid })`
-
-如果结果里有 `convert_zip`（base64）且用户希望落盘资源文件：
-
-- `doc2x_materialize_convert_zip({ convert_zip_base64, output_dir })` → `{ output_dir, zip_path, extracted }`
-
-## 失败与排错（你应当这样处理）
-
-1. 鉴权/配置异常  
-   先 `doc2x_debug_config()`，确认 `apiKeyLen > 0` 且 `baseUrl/httpTimeoutMs/pollIntervalMs/maxWaitMs` 合理。
-
-2. 等待超时  
-   建议用户调大 `DOC2X_MAX_WAIT_MS` 或按需调 `DOC2X_POLL_INTERVAL_MS`（不要过于频繁）。
-
-3. 下载被阻止（安全策略）  
-   `doc2x_download_url_to_file` 只允许 `https` 且要求 host 在 `DOC2X_DOWNLOAD_URL_ALLOWLIST` 内；被拦截时解释原因，并让用户选择“加 allowlist”或“保持默认安全策略”。
-
-4. 用户给的是相对路径/不确定路径  
-   要求用户提供绝对路径；不要猜。
+1. 缺参数或路径不合法：提示用户提供绝对路径，不要猜测相对路径。
+2. 等待超时：说明可调大 `DOC2X_MAX_WAIT_MS` 或适度调整轮询间隔。
+3. 下载被策略拦截：解释是 `DOC2X_DOWNLOAD_URL_ALLOWLIST` 限制，不要绕过。
+4. 认证或配置问题：调用 `doc2x_debug_config`，只汇报 `apiKeySource/apiKeyPrefix/apiKeyLen` 等摘要。
