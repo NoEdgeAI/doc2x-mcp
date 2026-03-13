@@ -102,7 +102,7 @@ Point MCP client to your local build output:
 ### PDF Parse Model (`doc2x_parse_pdf_submit` / `doc2x_parse_pdf_wait_text`)
 
 - Optional parameter: `model`
-- Supported value: `v3-2026` (latest model)
+- Supported values: `v2` (default) / `v3-2026` (latest model)
 - Default (when omitted): `v2`
 
 ```json

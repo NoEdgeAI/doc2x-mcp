@@ -3,6 +3,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { CONFIG } from '#config';
 import { isRetryableError } from '#errors';
 import {
+  PARSE_PDF_MODEL_V2,
+  PARSE_PDF_MODEL_V3,
   type ParsePdfModel,
   parsePdfStatus,
   parsePdfSubmit,
@@ -40,7 +42,7 @@ export function registerPdfTools(server: McpServer, ctx: RegisterToolsContext) {
       inputSchema: {
         pdf_path: pdfPathSchema,
         model: parsePdfModelSchema.describe(
-          "Optional parse model. Use 'v3-2026' to try the latest model. Omit this field to use default v2.",
+          `Optional parse model. Supported values: '${PARSE_PDF_MODEL_V2}' and '${PARSE_PDF_MODEL_V3}'. Omit this field to use default ${PARSE_PDF_MODEL_V2}.`,
         ),
       },
     },
@@ -95,7 +97,7 @@ export function registerPdfTools(server: McpServer, ctx: RegisterToolsContext) {
           ),
         model: parsePdfModelSchema
           .describe(
-            "Optional parse model used only when submitting from pdf_path. Use 'v3-2026' to try latest model. Omit this field to use default v2.",
+            `Optional parse model used only when submitting from pdf_path. Supported values: '${PARSE_PDF_MODEL_V2}' and '${PARSE_PDF_MODEL_V3}'. Omit this field to use default ${PARSE_PDF_MODEL_V2}.`,
           ),
       },
     },
@@ -194,7 +196,7 @@ export function registerPdfTools(server: McpServer, ctx: RegisterToolsContext) {
     'doc2x_materialize_pdf_layout_json',
     {
       description:
-        "Wait for a PDF parse task and write the raw Doc2x result JSON (with page layout) to output_path. Prefer passing uid. If only pdf_path is provided, this tool reuses a cached uid or submits a new parse with model='v3-2026' by default.",
+        `Wait for a PDF parse task and write the raw Doc2x result JSON (with page layout) to output_path. Prefer passing uid. If only pdf_path is provided, this tool reuses a cached uid or submits a new parse with model='${PARSE_PDF_MODEL_V3}' by default.`,
       inputSchema: {
         uid: parsePdfUidSchema.optional(),
         pdf_path: pdfPathForWaitSchema.optional(),
@@ -203,7 +205,7 @@ export function registerPdfTools(server: McpServer, ctx: RegisterToolsContext) {
         max_wait_ms: positiveIntMsSchema.optional(),
         model: parsePdfModelSchema
           .describe(
-            "Optional parse model used only when submitting from pdf_path. Defaults to 'v3-2026' for this tool.",
+            `Optional parse model used only when submitting from pdf_path. Supported values: '${PARSE_PDF_MODEL_V2}' and '${PARSE_PDF_MODEL_V3}'. Defaults to '${PARSE_PDF_MODEL_V3}' for this tool because ${PARSE_PDF_MODEL_V2} does not return layout.`,
           ),
       },
     },
@@ -236,7 +238,7 @@ export function registerPdfTools(server: McpServer, ctx: RegisterToolsContext) {
         if (!pdfPath) throw missingEitherFieldError('uid', 'pdf_path');
 
         const sig = await fileSig(pdfPath);
-        const model: ParsePdfModel = args.model ?? 'v3-2026';
+        const model: ParsePdfModel = args.model ?? PARSE_PDF_MODEL_V3;
         const cacheKey = makePdfUidCacheKey(sig.absPath, model);
         const resolvedUid = getSubmittedUidFromCache(ctx, { kind: 'pdf', key: cacheKey, sig });
         const finalUid = resolvedUid || (await parsePdfSubmit(pdfPath, { model })).uid;

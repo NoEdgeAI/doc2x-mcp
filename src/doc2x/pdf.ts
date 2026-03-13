@@ -16,7 +16,9 @@ import { DOC2X_TASK_STATUS_FAILED, DOC2X_TASK_STATUS_SUCCESS } from '#doc2x/cons
 import { HTTP_METHOD_GET, HTTP_METHOD_POST } from '#doc2x/http';
 import { v2 } from '#doc2x/paths';
 
-export const PARSE_PDF_MODELS = ['v3-2026'] as const;
+export const PARSE_PDF_MODEL_V2 = 'v2' as const;
+export const PARSE_PDF_MODEL_V3 = 'v3-2026' as const;
+export const PARSE_PDF_MODELS = [PARSE_PDF_MODEL_V2, PARSE_PDF_MODEL_V3] as const;
 export type ParsePdfModel = (typeof PARSE_PDF_MODELS)[number];
 type Doc2xPageResult = { page_idx?: unknown; md?: unknown };
 type Doc2xParseResult = { pages?: Doc2xPageResult[] };

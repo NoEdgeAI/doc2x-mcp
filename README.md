@@ -102,7 +102,7 @@ MCP client 指向本地构建产物：
 ### PDF 解析模型（`doc2x_parse_pdf_submit` / `doc2x_parse_pdf_wait_text`）
 
 - 可选参数：`model`
-- 可选值：`v3-2026`（最新模型）
+- 可选值：`v2`（默认） / `v3-2026`（最新模型）
 - 不传时默认 `v2`
 
 ```json

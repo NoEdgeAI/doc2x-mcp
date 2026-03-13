@@ -14,6 +14,7 @@ import {
   makeConvertSubmitKey,
   missingEitherFieldError,
   outputPathSchema,
+  parsePdfModelSchema,
   pdfPathSchema,
   setFailedUidCache,
   setSubmittedUidCache,
@@ -83,11 +84,20 @@ test('download URL schema only allows http/https', () => {
   assert.equal(doc2xDownloadUrlSchema.safeParse('ftp://example.com/file').success, false);
 });
 
+test('parse pdf model schema allows explicit v2 and v3-2026', () => {
+  assert.equal(parsePdfModelSchema.safeParse('v2').success, true);
+  assert.equal(parsePdfModelSchema.safeParse('v3-2026').success, true);
+  assert.equal(parsePdfModelSchema.safeParse('v1').success, false);
+});
+
 test('pdf uid cache hits for same signature from test/pdf/test.pdf', async () => {
   const ctx = createRegisterToolsContext();
   const pdfPath = path.resolve(process.cwd(), 'test/pdf/test.pdf');
   const sig1 = await fileSig(pdfPath);
   const key = makePdfUidCacheKey(sig1.absPath);
+  const explicitV2Key = makePdfUidCacheKey(sig1.absPath, 'v2');
+
+  assert.equal(key, explicitV2Key);
 
   assert.equal(getSubmittedUidFromCache(ctx, { kind: 'pdf', key, sig: sig1 }), '');
 
