@@ -8,11 +8,13 @@ import {
   doc2xDownloadUrlSchema,
   fileSig,
   getSubmittedUidFromCache,
+  jsonOutputPathSchema,
   makePdfUidCacheKey,
   imagePathSchema,
   makeConvertSubmitKey,
   missingEitherFieldError,
   outputPathSchema,
+  parsePdfModelSchema,
   pdfPathSchema,
   setFailedUidCache,
   setSubmittedUidCache,
@@ -60,6 +62,7 @@ test('path schemas enforce absolute and extension constraints', () => {
   const badImage = path.resolve('/tmp/a.gif');
   const relativeOut = 'tmp/out.md';
   const absoluteOut = path.resolve('/tmp/out.md');
+  const absoluteJsonOut = path.resolve('/tmp/out.json');
 
   assert.equal(pdfPathSchema.safeParse(goodPdf).success, true);
   assert.equal(pdfPathSchema.safeParse(badPdf).success, false);
@@ -71,6 +74,8 @@ test('path schemas enforce absolute and extension constraints', () => {
 
   assert.equal(outputPathSchema.safeParse(absoluteOut).success, true);
   assert.equal(outputPathSchema.safeParse(relativeOut).success, false);
+  assert.equal(jsonOutputPathSchema.safeParse(absoluteJsonOut).success, true);
+  assert.equal(jsonOutputPathSchema.safeParse(absoluteOut).success, false);
 });
 
 test('download URL schema only allows http/https', () => {
@@ -79,11 +84,20 @@ test('download URL schema only allows http/https', () => {
   assert.equal(doc2xDownloadUrlSchema.safeParse('ftp://example.com/file').success, false);
 });
 
+test('parse pdf model schema allows explicit v2 and v3-2026', () => {
+  assert.equal(parsePdfModelSchema.safeParse('v2').success, true);
+  assert.equal(parsePdfModelSchema.safeParse('v3-2026').success, true);
+  assert.equal(parsePdfModelSchema.safeParse('v1').success, false);
+});
+
 test('pdf uid cache hits for same signature from test/pdf/test.pdf', async () => {
   const ctx = createRegisterToolsContext();
   const pdfPath = path.resolve(process.cwd(), 'test/pdf/test.pdf');
   const sig1 = await fileSig(pdfPath);
   const key = makePdfUidCacheKey(sig1.absPath);
+  const explicitV2Key = makePdfUidCacheKey(sig1.absPath, 'v2');
+
+  assert.equal(key, explicitV2Key);
 
   assert.equal(getSubmittedUidFromCache(ctx, { kind: 'pdf', key, sig: sig1 }), '');
 

@@ -93,7 +93,7 @@ Point MCP client to your local build output:
 
 | Stage | Tools | Purpose |
 | --- | --- | --- |
-| PDF parse | `doc2x_parse_pdf_submit` / `doc2x_parse_pdf_status` / `doc2x_parse_pdf_wait_text` | Submit parse tasks, check status, wait and fetch text |
+| PDF parse | `doc2x_parse_pdf_submit` / `doc2x_parse_pdf_status` / `doc2x_parse_pdf_wait_text` / `doc2x_materialize_pdf_layout_json` | Submit parse tasks, check status, wait and fetch text, or materialize v3 layout JSON locally |
 | Export | `doc2x_convert_export_submit` / `doc2x_convert_export_result` / `doc2x_convert_export_wait` | Start export, read export result, wait for completion |
 | Download | `doc2x_download_url_to_file` / `doc2x_materialize_convert_zip` | Download export URL to local path, materialize convert zip |
 | Image layout parse | `doc2x_parse_image_layout_sync` / `doc2x_parse_image_layout_submit` / `doc2x_parse_image_layout_status` / `doc2x_parse_image_layout_wait_text` | Sync/async OCR and layout parse for images |
@@ -102,12 +102,29 @@ Point MCP client to your local build output:
 ### PDF Parse Model (`doc2x_parse_pdf_submit` / `doc2x_parse_pdf_wait_text`)
 
 - Optional parameter: `model`
-- Supported value: `v3-2026` (latest model)
+- Supported values: `v2` (default) / `v3-2026` (latest model)
 - Default (when omitted): `v2`
 
 ```json
 {
   "model": "v3-2026"
+}
+```
+
+### PDF Layout JSON Materialization (`doc2x_materialize_pdf_layout_json`)
+
+- Required: `output_path`
+- Provide either `uid` or `pdf_path`
+- `v2` does not support `layout`; use `v3-2026` when `pages[].layout` is required
+- When `pdf_path` is used and `model` is omitted, this tool defaults to `v3-2026`
+- On success it writes the raw parse `result` JSON locally
+
+`layout` contains page block structure and coordinates, which is useful for figure/table crops, region highlighting, structured extraction, and layout analysis. If the goal is readable full text, prefer Markdown / DOCX export.
+
+```json
+{
+  "pdf_path": "/absolute/path/to/input.pdf",
+  "output_path": "/absolute/path/to/input_v3.layout.json"
 }
 ```
 
@@ -133,6 +150,12 @@ Point MCP client to your local build output:
 
 1. Use `doc2x_parse_image_layout_sync` for direct parse.
 2. For robust polling behavior, switch to submit/status/wait flow.
+
+### Workflow 3: PDF -> local v3 layout JSON
+
+1. Call `doc2x_materialize_pdf_layout_json` with `pdf_path` and `output_path`.
+2. The tool waits for parse success and writes the raw `result` JSON locally.
+3. The saved JSON can be consumed directly by downstream figure/table crop scripts.
 
 ## Local Development
 

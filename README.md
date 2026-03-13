@@ -93,7 +93,7 @@ MCP client 指向本地构建产物：
 
 | 阶段 | Tools | 说明 |
 | --- | --- | --- |
-| PDF 解析 | `doc2x_parse_pdf_submit` / `doc2x_parse_pdf_status` / `doc2x_parse_pdf_wait_text` | 提交任务、查询状态、等待并取文本 |
+| PDF 解析 | `doc2x_parse_pdf_submit` / `doc2x_parse_pdf_status` / `doc2x_parse_pdf_wait_text` / `doc2x_materialize_pdf_layout_json` | 提交任务、查询状态、等待并取文本，或将 v3 layout 结果落盘为本地 JSON |
 | 结果导出 | `doc2x_convert_export_submit` / `doc2x_convert_export_result` / `doc2x_convert_export_wait` | 发起导出、查结果、等待导出完成 |
 | 下载落盘 | `doc2x_download_url_to_file` / `doc2x_materialize_convert_zip` | 下载 URL 到本地、解包 convert zip |
 | 图片版面解析 | `doc2x_parse_image_layout_sync` / `doc2x_parse_image_layout_submit` / `doc2x_parse_image_layout_status` / `doc2x_parse_image_layout_wait_text` | 同步/异步图片 OCR 与版面解析 |
@@ -102,12 +102,29 @@ MCP client 指向本地构建产物：
 ### PDF 解析模型（`doc2x_parse_pdf_submit` / `doc2x_parse_pdf_wait_text`）
 
 - 可选参数：`model`
-- 可选值：`v3-2026`（最新模型）
+- 可选值：`v2`（默认） / `v3-2026`（最新模型）
 - 不传时默认 `v2`
 
 ```json
 {
   "model": "v3-2026"
+}
+```
+
+### PDF Layout JSON 落盘（`doc2x_materialize_pdf_layout_json`）
+
+- 必选参数：`output_path`
+- `uid` 与 `pdf_path` 二选一
+- `v2` 不支持 `layout`；需要 `pages[].layout` 时请使用 `v3-2026`
+- 若传 `pdf_path` 但不传 `model`，该工具默认使用 `v3-2026`
+- 成功时将原始 `result` JSON 写到本地
+
+`layout` 是页面块结构和坐标信息，适合 figure/table 裁剪、区域高亮、结构化抽取和版面分析；如果只想看正文内容，优先使用 Markdown / DOCX 导出。
+
+```json
+{
+  "pdf_path": "/absolute/path/to/input.pdf",
+  "output_path": "/absolute/path/to/input_v3.layout.json"
 }
 ```
 
@@ -133,6 +150,12 @@ MCP client 指向本地构建产物：
 
 1. `doc2x_parse_image_layout_sync` 直接同步解析。
 2. 若需要稳态轮询，改用 submit/status/wait 组合。
+
+### 工作流 3：PDF -> v3 layout JSON 本地文件
+
+1. 调用 `doc2x_materialize_pdf_layout_json`，传入 `pdf_path` 和 `output_path`。
+2. 工具会等待 parse 成功，并将原始 `result` JSON 落到本地。
+3. 该 JSON 可直接提供给后续 figure/table 裁剪脚本使用。
 
 ## 本地开发
 

@@ -6,7 +6,7 @@ import { LRUCache } from 'lru-cache';
 import { z } from 'zod';
 
 import { CONVERT_FORMULA_LEVELS, type ConvertFormulaLevel } from '#doc2x/convert';
-import { PARSE_PDF_MODELS, type ParsePdfModel } from '#doc2x/pdf';
+import { PARSE_PDF_MODEL_V2, PARSE_PDF_MODELS, type ParsePdfModel } from '#doc2x/pdf';
 import { ToolError } from '#errors';
 import { TOOL_ERROR_CODE_INVALID_ARGUMENT } from '#errorCodes';
 import { asErrorResult } from '#mcp/results';
@@ -160,8 +160,8 @@ export function sameSig(a: FileSig, b: FileSig): boolean {
   return a.md5 === b.md5;
 }
 
-function normalizeParsePdfModel(model?: ParsePdfModel): ParsePdfModel | 'v2' {
-  return model ?? 'v2';
+function normalizeParsePdfModel(model?: ParsePdfModel): ParsePdfModel {
+  return model ?? PARSE_PDF_MODEL_V2;
 }
 
 export function makePdfUidCacheKey(absPath: string, model?: ParsePdfModel): string {
@@ -262,6 +262,12 @@ export const pdfPathForWaitSchema = pdfPathSchema.describe(
 export const outputPathSchema = absolutePathSchema.describe(
   'Absolute path for the output file. The file will be overwritten if it exists.',
 );
+
+export const jsonOutputPathSchema = absolutePathSchema
+  .refine((v) => v.toLowerCase().endsWith('.json'), {
+    message: "Path must end with '.json'.",
+  })
+  .describe('Absolute path for the output JSON file. The file will be overwritten if it exists.');
 
 export const doc2xDownloadUrlSchema = z
   .string()
