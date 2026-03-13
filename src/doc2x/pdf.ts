@@ -16,7 +16,9 @@ import { DOC2X_TASK_STATUS_FAILED, DOC2X_TASK_STATUS_SUCCESS } from '#doc2x/cons
 import { HTTP_METHOD_GET, HTTP_METHOD_POST } from '#doc2x/http';
 import { v2 } from '#doc2x/paths';
 
-export const PARSE_PDF_MODELS = ['v3-2026'] as const;
+export const PARSE_PDF_MODEL_V2 = 'v2' as const;
+export const PARSE_PDF_MODEL_V3 = 'v3-2026' as const;
+export const PARSE_PDF_MODELS = [PARSE_PDF_MODEL_V2, PARSE_PDF_MODEL_V3] as const;
 export type ParsePdfModel = (typeof PARSE_PDF_MODELS)[number];
 type Doc2xPageResult = { page_idx?: unknown; md?: unknown };
 type Doc2xParseResult = { pages?: Doc2xPageResult[] };
@@ -141,17 +143,13 @@ export async function parsePdfStatus(uid: string) {
   };
 }
 
-export async function parsePdfWaitTextByUid(args: {
+async function waitForParsePdfSuccessByUid(args: {
   uid: string;
   poll_interval_ms?: number;
   max_wait_ms?: number;
-  join_with?: string;
-  max_output_chars?: number;
-  max_output_pages?: number;
 }) {
   const pollInterval = args.poll_interval_ms ?? CONFIG.pollIntervalMs;
   const maxWait = args.max_wait_ms ?? CONFIG.maxWaitMs;
-  const joinWith = args.join_with ?? '\n\n---\n\n';
 
   const uid = String(args.uid || '').trim();
   if (!uid)
@@ -182,13 +180,7 @@ export async function parsePdfWaitTextByUid(args: {
       }
       throw e;
     }
-    if (st.status === DOC2X_TASK_STATUS_SUCCESS) {
-      const merged = mergePagesToTextWithLimit(st.result, joinWith, {
-        maxOutputChars: args.max_output_chars,
-        maxOutputPages: args.max_output_pages,
-      });
-      return { uid, status: DOC2X_TASK_STATUS_SUCCESS, ...merged };
-    }
+    if (st.status === DOC2X_TASK_STATUS_SUCCESS) return st;
     if (st.status === DOC2X_TASK_STATUS_FAILED)
       throw new ToolError({
         code: TOOL_ERROR_CODE_PARSE_FAILED,
@@ -198,4 +190,30 @@ export async function parsePdfWaitTextByUid(args: {
       });
     await sleep(pollInterval);
   }
+}
+
+export async function parsePdfWaitResultByUid(args: {
+  uid: string;
+  poll_interval_ms?: number;
+  max_wait_ms?: number;
+}) {
+  const st = await waitForParsePdfSuccessByUid(args);
+  return { uid: st.uid, status: DOC2X_TASK_STATUS_SUCCESS, result: st.result };
+}
+
+export async function parsePdfWaitTextByUid(args: {
+  uid: string;
+  poll_interval_ms?: number;
+  max_wait_ms?: number;
+  join_with?: string;
+  max_output_chars?: number;
+  max_output_pages?: number;
+}) {
+  const joinWith = args.join_with ?? '\n\n---\n\n';
+  const st = await waitForParsePdfSuccessByUid(args);
+  const merged = mergePagesToTextWithLimit(st.result, joinWith, {
+    maxOutputChars: args.max_output_chars,
+    maxOutputPages: args.max_output_pages,
+  });
+  return { uid: st.uid, status: DOC2X_TASK_STATUS_SUCCESS, ...merged };
 }

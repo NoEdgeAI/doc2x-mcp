@@ -3,16 +3,21 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { CONFIG } from '#config';
 import { isRetryableError } from '#errors';
 import {
+  PARSE_PDF_MODEL_V2,
+  PARSE_PDF_MODEL_V3,
   type ParsePdfModel,
   parsePdfStatus,
   parsePdfSubmit,
+  parsePdfWaitResultByUid,
   parsePdfWaitTextByUid,
 } from '#doc2x/pdf';
+import { materializePdfLayoutJson } from '#doc2x/materialize';
 import { asJsonResult, asTextResult } from '#mcp/results';
 import {
   deleteUidCache,
   fileSig,
   getSubmittedUidFromCache,
+  jsonOutputPathSchema,
   joinWithSchema,
   makePdfUidCacheKey,
   missingEitherFieldError,
@@ -37,7 +42,7 @@ export function registerPdfTools(server: McpServer, ctx: RegisterToolsContext) {
       inputSchema: {
         pdf_path: pdfPathSchema,
         model: parsePdfModelSchema.describe(
-          "Optional parse model. Use 'v3-2026' to try the latest model. Omit this field to use default v2.",
+          `Optional parse model. Supported values: '${PARSE_PDF_MODEL_V2}' and '${PARSE_PDF_MODEL_V3}'. Omit this field to use default ${PARSE_PDF_MODEL_V2}.`,
         ),
       },
     },
@@ -92,7 +97,7 @@ export function registerPdfTools(server: McpServer, ctx: RegisterToolsContext) {
           ),
         model: parsePdfModelSchema
           .describe(
-            "Optional parse model used only when submitting from pdf_path. Use 'v3-2026' to try latest model. Omit this field to use default v2.",
+            `Optional parse model used only when submitting from pdf_path. Supported values: '${PARSE_PDF_MODEL_V2}' and '${PARSE_PDF_MODEL_V3}'. Omit this field to use default ${PARSE_PDF_MODEL_V2}.`,
           ),
       },
     },
@@ -178,6 +183,88 @@ export function registerPdfTools(server: McpServer, ctx: RegisterToolsContext) {
             const out = await waitByUid(retryUid);
             const notice = out.truncated ? truncationNotice(out) : '';
             return asTextResult(notice ? appendNotice(out.text, notice) : out.text);
+          } catch (retryErr) {
+            markFailed(retryUid);
+            throw retryErr;
+          }
+        }
+      },
+    ),
+  );
+
+  server.registerTool(
+    'doc2x_materialize_pdf_layout_json',
+    {
+      description:
+        `Wait for a PDF parse task and write the raw Doc2x result JSON (with page layout) to output_path. Prefer passing uid. If only pdf_path is provided, this tool reuses a cached uid or submits a new parse with model='${PARSE_PDF_MODEL_V3}' by default.`,
+      inputSchema: {
+        uid: parsePdfUidSchema.optional(),
+        pdf_path: pdfPathForWaitSchema.optional(),
+        output_path: jsonOutputPathSchema,
+        poll_interval_ms: positiveIntMsSchema.optional(),
+        max_wait_ms: positiveIntMsSchema.optional(),
+        model: parsePdfModelSchema
+          .describe(
+            `Optional parse model used only when submitting from pdf_path. Supported values: '${PARSE_PDF_MODEL_V2}' and '${PARSE_PDF_MODEL_V3}'. Defaults to '${PARSE_PDF_MODEL_V3}' for this tool because ${PARSE_PDF_MODEL_V2} does not return layout.`,
+          ),
+      },
+    },
+    withToolErrorHandling(
+      async (args: {
+        uid?: string;
+        pdf_path?: string;
+        output_path: string;
+        poll_interval_ms?: number;
+        max_wait_ms?: number;
+        model?: ParsePdfModel;
+      }) => {
+        const materializeByUid = async (uid: string) => {
+          const out = await parsePdfWaitResultByUid({
+            uid,
+            poll_interval_ms: args.poll_interval_ms,
+            max_wait_ms: args.max_wait_ms,
+          });
+          return await materializePdfLayoutJson({
+            uid: out.uid,
+            result: out.result,
+            output_path: args.output_path,
+          });
+        };
+
+        const uid = String(args.uid || '').trim();
+        if (uid) return asJsonResult(await materializeByUid(uid));
+
+        const pdfPath = String(args.pdf_path || '').trim();
+        if (!pdfPath) throw missingEitherFieldError('uid', 'pdf_path');
+
+        const sig = await fileSig(pdfPath);
+        const model: ParsePdfModel = args.model ?? PARSE_PDF_MODEL_V3;
+        const cacheKey = makePdfUidCacheKey(sig.absPath, model);
+        const resolvedUid = getSubmittedUidFromCache(ctx, { kind: 'pdf', key: cacheKey, sig });
+        const finalUid = resolvedUid || (await parsePdfSubmit(pdfPath, { model })).uid;
+        setSubmittedUidCache(ctx, { kind: 'pdf', key: cacheKey, sig, uid: finalUid });
+
+        const markFailed = (failedUid: string) =>
+          setFailedUidCache(ctx, { kind: 'pdf', key: cacheKey, sig, uid: failedUid });
+
+        try {
+          return asJsonResult(await materializeByUid(finalUid));
+        } catch (e) {
+          if (!resolvedUid) {
+            markFailed(finalUid);
+            throw e;
+          }
+
+          deleteUidCache(ctx, { kind: 'pdf', key: cacheKey });
+          if (!isRetryableError(e)) {
+            markFailed(finalUid);
+            throw e;
+          }
+
+          const retryUid = (await parsePdfSubmit(pdfPath, { model })).uid;
+          setSubmittedUidCache(ctx, { kind: 'pdf', key: cacheKey, sig, uid: retryUid });
+          try {
+            return asJsonResult(await materializeByUid(retryUid));
           } catch (retryErr) {
             markFailed(retryUid);
             throw retryErr;
