@@ -1,5 +1,16 @@
 # Doc2x MCP Server
 
+<p align="center">
+  <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="120" height="120" viewBox="0 0 120 120">
+    <defs>
+      <clipPath id="r">
+        <rect width="120" height="120" rx="24" ry="24"/>
+      </clipPath>
+    </defs>
+    <image href="./icon.png" width="120" height="120" clip-path="url(#r)"/>
+  </svg>
+</p>
+
 [![CI](https://github.com/NoEdgeAI/doc2x-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/NoEdgeAI/doc2x-mcp/actions/workflows/ci.yml)
 [![Publish](https://github.com/NoEdgeAI/doc2x-mcp/actions/workflows/publish.yml/badge.svg)](https://github.com/NoEdgeAI/doc2x-mcp/actions/workflows/publish.yml)
 [![npm version](https://img.shields.io/npm/v/%40noedgeai-org%2Fdoc2x-mcp)](https://www.npmjs.com/package/@noedgeai-org/doc2x-mcp)
@@ -22,6 +33,7 @@ A stdio-based MCP Server that wraps Doc2x v2 PDF/image capabilities into stable,
 - [Install Repo Skill (Optional)](#install-repo-skill-optional)
 - [Security and Troubleshooting](#security-and-troubleshooting)
 - [Getting Help](#getting-help)
+- [Changelog](./CHANGELOG.md)
 - [License](#license)
 
 ## Project Scope
@@ -215,6 +227,8 @@ pnpm audit --prod --audit-level high
 ## Install Repo Skill (Optional)
 
 Installs a reusable skill for Codex CLI / Claude Code to guide tool usage with the standard `submit/status/wait/export/download` workflow.
+
+> **Note:** After upgrading `doc2x-mcp` to a new version, re-run the install command to update the Skill and ensure the model uses the latest tool descriptions and workflows.
 
 One-command install without cloning (recommended):
 
