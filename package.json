@@ -21,7 +21,8 @@
     "./scripts/install-skill.ps1",
     "./scripts/install-skill-winps.ps1",
     "./skills/doc2x-mcp/SKILL.md",
-    "./package.json"
+    "./package.json",
+    "./icon.png"
   ],
   "scripts": {
     "build": "node ./node_modules/typescript/bin/tsc -p tsconfig.json",

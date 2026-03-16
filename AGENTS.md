@@ -56,6 +56,21 @@ DOC2X_API_KEY=sk-xxx npm run build && npm start
 
 - Zod URL validation should use `z.url()` (for example via `.pipe(z.url())`) instead of deprecated `z.string().url()`.
 
+## Release Checklist
+
+When bumping the package version, always update all three of the following together:
+
+1. **`package.json`** — update `"version"` field.
+2. **`CHANGELOG.md`** — add a new section `## [x.y.z] - YYYY-MM-DD` with a summary of changes. Move items from `Unreleased` if applicable.
+3. **`README.md` / `README_EN.md`** — if any tool names, parameters, env vars, or workflows changed, sync the relevant sections.
+
+After releasing a new version, remind users to re-run the Skill install command to pick up the latest tool descriptions:
+
+```bash
+# One-command update (no clone needed)
+curl -fsSL https://raw.githubusercontent.com/NoEdgeAI/doc2x-mcp/main/scripts/install-skill.sh | sh
+```
+
 ## Commit & Pull Request Guidelines
 
 - Use Conventional Commits style (e.g., `feat: ...`, `fix: ...`, `docs: ...`).

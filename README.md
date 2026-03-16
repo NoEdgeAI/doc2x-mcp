@@ -1,5 +1,16 @@
 # Doc2x MCP Server
 
+<p align="center">
+  <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="120" height="120" viewBox="0 0 120 120">
+    <defs>
+      <clipPath id="r">
+        <rect width="120" height="120" rx="24" ry="24"/>
+      </clipPath>
+    </defs>
+    <image href="./icon.png" width="120" height="120" clip-path="url(#r)"/>
+  </svg>
+</p>
+
 [![CI](https://github.com/NoEdgeAI/doc2x-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/NoEdgeAI/doc2x-mcp/actions/workflows/ci.yml)
 [![Publish](https://github.com/NoEdgeAI/doc2x-mcp/actions/workflows/publish.yml/badge.svg)](https://github.com/NoEdgeAI/doc2x-mcp/actions/workflows/publish.yml)
 [![npm version](https://img.shields.io/npm/v/%40noedgeai-org%2Fdoc2x-mcp)](https://www.npmjs.com/package/@noedgeai-org/doc2x-mcp)
@@ -22,6 +33,7 @@
 - [安装本仓库 Skill（可选）](#安装本仓库-skill可选)
 - [安全与排错](#安全与排错)
 - [问题反馈](#问题反馈)
+- [Changelog](./CHANGELOG.md)
 - [License](#license)
 
 ## 项目定位
@@ -214,7 +226,9 @@ pnpm audit --prod --audit-level high
 
 ## 安装本仓库 Skill（可选）
 
-用于给 Codex CLI / Claude Code 增加一个“教大模型如何使用 doc2x-mcp tools 的 Skill”。
+用于给 Codex CLI / Claude Code 增加一个"教大模型如何使用 doc2x-mcp tools 的 Skill"。
+
+> **提示：** 每次升级 `doc2x-mcp` 版本后，建议重新运行安装命令以更新 Skill，确保大模型使用最新的 tool 描述与工作流。
 
 不需要 clone 仓库的一键安装（推荐）：
 
