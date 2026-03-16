@@ -1,14 +1,7 @@
 # Doc2x MCP Server
 
 <p align="center">
-  <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="120" height="120" viewBox="0 0 120 120">
-    <defs>
-      <clipPath id="r">
-        <rect width="120" height="120" rx="24" ry="24"/>
-      </clipPath>
-    </defs>
-    <image href="./icon.png" width="120" height="120" clip-path="url(#r)"/>
-  </svg>
+  <img src="./icon_rounded.png" width="120" alt="Doc2x MCP"/>
 </p>
 
 [![CI](https://github.com/NoEdgeAI/doc2x-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/NoEdgeAI/doc2x-mcp/actions/workflows/ci.yml)
