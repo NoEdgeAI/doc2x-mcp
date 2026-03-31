@@ -1,6 +1,11 @@
 name: Recreate dev branch
 
 on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -8,6 +13,7 @@ permissions:
 
 jobs:
   recreate-dev:
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'dev')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
