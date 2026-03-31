@@ -26,6 +26,7 @@ env:
   CI: true
   NPM_CONFIG_FUND: 'false'
   PNPM_HOME: ~/.pnpm
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   dependency-review:
