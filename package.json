@@ -1,6 +1,6 @@
 {
   "name": "@noedgeai-org/doc2x-mcp",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Doc2x MCP server (stdio, MCP SDK).",
   "license": "MIT",
   "engines": {

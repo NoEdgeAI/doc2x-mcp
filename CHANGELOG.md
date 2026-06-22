@@ -2,7 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.4] - Unreleased
+## [0.1.5] - 2026-06-22
+
+- fix: override `hono` to `>=4.12.25` to resolve GHSA-88fw-hqm2-52qc in production audit checks
+
+## [0.1.4] - 2026-03-14
 
 - feat: add project icon (`icon.png`)
 - chore: upgrade `@modelcontextprotocol/sdk` to fix vulnerabilities
