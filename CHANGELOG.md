@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.6] - 2026-10-16
+
+- fix: shorten long export filenames in auto mode to meet the API's 50-character limit while retaining a stable distinguishing suffix
+- fix: reject overlong raw-mode filenames locally with a non-retryable parameter error
+- docs: describe filename behavior for direct export and wait-tool auto-submission
+
 ## [0.1.5] - 2026-06-22
 
 - fix: override `hono` to `>=4.12.25` to resolve GHSA-88fw-hqm2-52qc in production audit checks

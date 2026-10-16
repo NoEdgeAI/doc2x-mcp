@@ -1,8 +1,13 @@
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 
 import { CONFIG } from '#config';
 import { ToolError, isRetryableError } from '#errors';
-import { TOOL_ERROR_CODE_CONVERT_FAILED, TOOL_ERROR_CODE_TIMEOUT } from '#errorCodes';
+import {
+  TOOL_ERROR_CODE_CONVERT_FAILED,
+  TOOL_ERROR_CODE_INVALID_ARGUMENT,
+  TOOL_ERROR_CODE_TIMEOUT,
+} from '#errorCodes';
 import { jitteredBackoffMs, sleep } from '#utils';
 import { doc2xRequestJson, normalizeUrl } from '#doc2x/client';
 import { DOC2X_TASK_STATUS_FAILED, DOC2X_TASK_STATUS_SUCCESS } from '#doc2x/constants';
@@ -10,6 +15,7 @@ import { HTTP_METHOD_GET, HTTP_METHOD_POST } from '#doc2x/http';
 import { v2 } from '#doc2x/paths';
 
 type ExportFilenameMode = 'auto' | 'raw';
+const MAX_EXPORT_FILENAME_CHARACTERS = 50;
 export const CONVERT_FORMULA_LEVELS = [0, 1, 2] as const;
 export type ConvertFormulaLevel = (typeof CONVERT_FORMULA_LEVELS)[number];
 
@@ -20,12 +26,26 @@ function normalizeExportFilename(
 ): string {
   const v = String(filename).trim();
   if (!v) return v;
-  const base = path.basename(v);
-  if (mode === 'raw') return base;
-  if (to === 'md') return base.replace(/\.md$/i, '');
-  if (to === 'tex') return base.replace(/\.tex$/i, '');
-  if (to === 'docx') return base.replace(/\.docx$/i, '');
-  return base;
+  let base = path.basename(v);
+  if (mode === 'auto') {
+    if (to === 'md') base = base.replace(/\.md$/i, '');
+    if (to === 'tex') base = base.replace(/\.tex$/i, '');
+    if (to === 'docx') base = base.replace(/\.docx$/i, '');
+  }
+  const characters = Array.from(base);
+  if (characters.length <= MAX_EXPORT_FILENAME_CHARACTERS) return base;
+  if (mode === 'raw') {
+    throw new ToolError({
+      code: TOOL_ERROR_CODE_INVALID_ARGUMENT,
+      message:
+        'filename must be at most 50 Unicode characters in raw mode; shorten it or use filename_mode="auto".',
+      retryable: false,
+    });
+  }
+
+  // The API's archive basename is limited independently of the local output path.
+  const suffix = `-${createHash('sha256').update(base).digest('hex').slice(0, 12)}`;
+  return characters.slice(0, MAX_EXPORT_FILENAME_CHARACTERS - suffix.length).join('') + suffix;
 }
 
 function exportUrlLooksLike(url: string, to: 'md' | 'tex' | 'docx'): boolean {
