@@ -148,6 +148,8 @@ MCP client 指向本地构建产物：
 
 `filename_mode="raw"` 保留 basename 及扩展名；超过 50 个 Unicode 字符时，在发送请求前返回不可重试的 `invalid_argument`。请缩短名称或改用 `auto`。这些规则也适用于 `doc2x_convert_export_wait` 的自动提交。
 
+等待导出同时支持当前 API 的不透明下载地址和旧格式地址。同一 `uid` 的不同格式导出请按顺序进行，避免读取到另一笔导出的结果。
+
 ## 常见工作流
 
 ### 工作流 1：PDF -> Markdown 本地文件
