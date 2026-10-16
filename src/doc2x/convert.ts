@@ -49,10 +49,18 @@ function normalizeExportFilename(
 }
 
 function exportUrlLooksLike(url: string, to: 'md' | 'tex' | 'docx'): boolean {
-  const u = String(url || '').toLowerCase();
-  if (!u) return false;
-  if (to === 'docx') return u.includes('convert_docx');
-  return u.includes(`convert_${to}_`);
+  let parsed: URL;
+  try {
+    parsed = new URL(String(url || ''));
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+
+  // Current API results use opaque /converts/cv_* object IDs. Successful
+  // results carry no format hint; legacy paths can still contradict `to`.
+  const legacyFormat = /convert_(md|tex|docx)(?=[_./-]|$)/.exec(parsed.pathname.toLowerCase())?.[1];
+  return legacyFormat == null || legacyFormat === to;
 }
 
 export async function convertExportSubmit(args: {

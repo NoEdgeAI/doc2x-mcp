@@ -148,6 +148,8 @@ Point MCP client to your local build output:
 
 `filename_mode="raw"` preserves the basename and extension. Names exceeding 50 Unicode characters return a non-retryable `invalid_argument` before submission; shorten the name or use `auto`. These rules also apply when `doc2x_convert_export_wait` submits a job automatically.
 
+Export waiting supports both current opaque download URLs and legacy format-bearing URLs. Export different formats for the same `uid` sequentially so a result belongs to the intended submission.
+
 ## Common Workflows
 
 ### Workflow 1: PDF -> Markdown local file

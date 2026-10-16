@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.7] - 2026-10-16
+
+- fix: finish waiting when successful exports use the API's current opaque download URLs, while retaining checks for contradictory legacy format hints
+
 ## [0.1.6] - 2026-10-16
 
 - fix: shorten long export filenames in auto mode to meet the API's 50-character limit while retaining a stable distinguishing suffix

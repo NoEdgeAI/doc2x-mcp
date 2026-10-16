@@ -94,7 +94,9 @@ export function registerConvertTools(server: McpServer, ctx: RegisterToolsContex
         'Wait for an export job to finish. Prefer calling doc2x_convert_export_submit first, then wait with uid+to. For backward compatibility, if formula_mode is provided and this job was not submitted in-process, this tool will submit once then wait.',
       inputSchema: {
         uid: parsePdfUidSchema,
-        to: convertToSchema.describe('Expected target format. Used to verify the result URL.'),
+        to: convertToSchema.describe(
+          'Expected target format. Rejects contradictory legacy URL format hints; current download URLs may use opaque object IDs. Keep exports for the same uid sequential.',
+        ),
         formula_mode: convertFormulaModeSchema.optional(),
         formula_level: convertFormulaLevelValueSchema
           .optional()
