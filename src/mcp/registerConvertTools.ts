@@ -59,19 +59,20 @@ export function registerConvertTools(server: McpServer, ctx: RegisterToolsContex
           .describe(
             'Optional formula degradation level. Effective only when source parse uses model=v3-2026 (ignored by v2). 0: keep formulas, 1: degrade inline formulas, 2: degrade inline and block formulas.',
           ),
-        filename: convertFilenameSchema
-          .describe(
-            "Optional output filename (for md/tex only). Tip: pass a basename WITHOUT extension to avoid getting 'name.md.md' / 'name.tex.tex'.",
-          ),
+        filename: convertFilenameSchema.describe(
+          "Optional output filename (for md/tex only). Tip: pass a basename WITHOUT extension to avoid getting 'name.md.md' / 'name.tex.tex'.",
+        ),
         filename_mode: convertFilenameModeSchema
           .describe(
-            "How to treat filename. 'auto' strips common extensions for the target format; 'raw' passes basename as-is.",
+            "How to treat filename. 'auto' strips the target extension and shortens names exceeding 50 Unicode characters with a stable hash suffix; 'raw' preserves the basename and rejects names over 50 characters before submission.",
           )
           .optional(),
         merge_cross_page_forms: optionalBooleanSchema,
       },
     },
-    withToolErrorHandling(async (args: ConvertSubmitArgs) => asJsonResult(await submitConvertWithDedup(args))),
+    withToolErrorHandling(async (args: ConvertSubmitArgs) =>
+      asJsonResult(await submitConvertWithDedup(args)),
+    ),
   );
 
   server.registerTool(
@@ -101,7 +102,11 @@ export function registerConvertTools(server: McpServer, ctx: RegisterToolsContex
             'Optional formula degradation level used when this tool auto-submits export (formula_mode must be provided). Effective only when source parse uses model=v3-2026 (ignored by v2).',
           ),
         filename: convertFilenameSchema,
-        filename_mode: convertFilenameModeSchema.optional(),
+        filename_mode: convertFilenameModeSchema
+          .describe(
+            "For auto-submission: 'auto' strips the target extension and shortens names to at most 50 Unicode characters with a stable hash suffix; 'raw' preserves the basename and rejects longer names.",
+          )
+          .optional(),
         merge_cross_page_forms: optionalBooleanSchema,
         poll_interval_ms: positiveIntMsSchema.optional(),
         max_wait_ms: positiveIntMsSchema.optional(),

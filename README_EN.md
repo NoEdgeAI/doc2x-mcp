@@ -142,6 +142,12 @@ Point MCP client to your local build output:
   - `1`: degrade inline formulas (`\\(...\\)`, `$...$`)
   - `2`: degrade all formulas (`\\(...\\)`, `$...$`, `\\[...\\]`, `$$...$$`)
 
+### Export filenames
+
+`filename` names the file inside the API export; it does not change the local download path. The default `filename_mode="auto"` takes the basename, removes the target extension, and shortens names longer than 50 Unicode characters to a prefix plus a stable hash suffix. Different long titles with the same prefix receive different suffixes.
+
+`filename_mode="raw"` preserves the basename and extension. Names exceeding 50 Unicode characters return a non-retryable `invalid_argument` before submission; shorten the name or use `auto`. These rules also apply when `doc2x_convert_export_wait` submits a job automatically.
+
 ## Common Workflows
 
 ### Workflow 1: PDF -> Markdown local file
